@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Теплица с вентиляторами-пчёлами</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%2308130f%27/%3E%3Cpath d=%27M4 26 V14 L16 6 L28 14 V26 Z%27 fill=%27none%27 stroke=%27%233ee6b0%27 stroke-width=%272%27/%3E%3Cpath d=%27M9 19 H23%27 stroke=%27%23f5d76e%27 stroke-width=%272.5%27/%3E%3Cpath d=%27M20 16 L24 19 L20 22%27 stroke=%27%23f5d76e%27 stroke-width=%272.5%27 fill=%27none%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <a class="home" href="../index.html">← Роевой интеллект</a>
+    <h1>Теплица с вентиляторами-пчёлами</h1>
+    <p>В жаркий день пчёлы охлаждают улей сами: часть рабочих встаёт у летка и машет крыльями, <b>выстраиваясь в общий
+      поток</b>. С одной стороны летка горячий воздух выдувается, с другой втягивается свежий. Командира нет: пчела
+      включается, когда ей жарко (у каждой свой порог), и разворачивается по потоку, который уже создали соседки.
+      Здесь так же ведут себя 24 вентилятора в теплице 30 × 15 м. Они не знают, где проёмы в стенах. Найдут ли
+      они вместе, как выдуть жару?</p>
+  </header>
+  <section class="controls">
+    <div class="buttons">
+      <button id="btn-run" class="primary">⏸ Пауза</button>
+      <button id="btn-reset">↺ Заново</button>
+      <span id="aim" class="buttons"><button data-aim="fixed">Как поставили</button><button data-aim="tunnel">Туннель инженера</button><button data-aim="bees" class="active">Как пчёлы</button></span>
+      <button id="btn-fix">Починить все</button>
+      <label class="inline">seed <input id="seed" type="number" value="1"></label>
+    </div>
+    <div class="groups">
+      <fieldset id="group-sun"><legend>Погода и вид</legend></fieldset>
+      <fieldset id="group-fan"><legend>Вентиляторы</legend>
+        <label class="slider"><span>Пороги включения</span><select id="thresholds"><option value="diverse">разные (как у пчёл)</option><option value="same">одинаковые</option></select></label>
+      </fieldset>
+    </div>
+  </section>
+  <main>
+    <section class="panel field-panel">
+      <div class="stats" id="stats"></div>
+      <canvas id="field"></canvas>
+      <div class="legend">
+        <span><i class="hue-t"></i>температура: 26 → 42 °C</span>
+        <span style="--c:#dcefe7">вентилятор работает</span>
+        <span style="--c:#55635d">выключен</span>
+        <span style="--c:#ff4d6d">сломан (клик по вентилятору)</span>
+        <span class="muted">Белые штрихи — движение воздуха. Проёмы — в левой и правой стене.</span>
+      </div>
+    </section>
+    <section class="panel side">
+      <div class="charts">
+        <h2>Температура, °C</h2>
+        <canvas id="chart-t"></canvas>
+        <h2>Работает вентиляторов</h2>
+        <canvas id="chart-n"></canvas>
+      </div>
+      <h2>Что попробовать</h2>
+      <ul class="try">
+        <li><b>Как пчёлы</b> (по умолчанию): теплица прогрелась до 36 °C, вентиляторы стоят как попало. Каждые 10 секунд
+          они понемногу разворачиваются по потоку соседей и к жаре и выстраиваются в общий поток через теплицу.
+          Через 5–9 минут средняя ниже 33 °C, дальше держится на 31–32,5. Куда пойдёт поток, решается само, как у стаи
+          на странице «Фазовый переход»: проёмы одинаковые, на 8 seed поток 6 раз пошёл влево и 2 раза вправо.</li>
+        <li><b>Как поставили.</b> Все 24 вентилятора включены, а в теплице 38–39 °C — почти как без них. Каждый гоняет воздух
+          по кругу, а наружу его выдувает только общий поток. Важно не количество вентиляторов, а согласованность.</li>
+        <li><b>Туннель инженера</b> — все смотрят на вытяжку, так строят настоящие теплицы: 31,2–32,4 °C. Пчёлы приходят
+          к тому же, не зная, где проёмы.</li>
+        <li><b>Сломай вентиляторы</b> кликом, например два средних столбца. Пчелиные вентиляторы перестраиваются,
+          туннель просто теряет мощность. Честно: в нашей модели туннель после поломки держит
+          температуру на 0,3–0,7 °C лучше. Рой не обгоняет хороший план, но находит его сам.</li>
+        <li><b>Пороги и солнце 0,5.</b> С одинаковыми порогами работают 21–22 вентилятора, с разными (±3 °C) — 12–16,
+          а температура почти та же (30–30,7 °C против 30,4–30,5). Включаются те, кому жарче всего, — как у пчёл.</li>
+      </ul>
+    </section>
+  </main>
+  <section class="panel explain"><h2>Как это устроено</h2>
+    <div class="explain-grid">
+      <svg class="scheme" viewBox="0 0 560 280" role="img" aria-label="Схема: правило вентилятора-пчелы">
+        <defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#dcefe7"/></marker>
+          <marker id="ahy" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#f5d76e"/></marker></defs>
+        <rect x="20" y="40" width="300" height="200" fill="#1a3324" stroke="#3ee6b0"/>
+        <rect x="16" y="110" width="8" height="60" fill="#040a08"/><rect x="316" y="110" width="8" height="60" fill="#040a08"/>
+        <g stroke="#dcefe7" stroke-width="2" marker-end="url(#ah)" opacity="0.6"><path d="M40 140 H90"/><path d="M110 120 H160"/><path d="M110 160 H160"/></g>
+        <circle cx="200" cy="140" r="16" fill="none" stroke="#f5d76e" stroke-width="2"/>
+        <path d="M200 140 L240 125" stroke="#f5d76e" stroke-width="3" marker-end="url(#ahy)"/>
+        <path d="M200 140 L245 140" stroke="#f5d76e" stroke-width="2" stroke-dasharray="4 3" opacity="0.6"/>
+        <text x="185" y="185" fill="#f5d76e" font-size="12">я</text>
+        <text x="40" y="270" fill="#86a89b" font-size="12">поток, созданный соседями, — повернуться по нему</text>
+        <text x="350" y="60" fill="#dcefe7" font-size="13">Каждый вентилятор:</text>
+        <text x="350" y="90" fill="#86a89b" font-size="12">• жарче моего порога — вкл.,</text>
+        <text x="350" y="108" fill="#86a89b" font-size="12">  остыл на 0,5 °C ниже — выкл.</text>
+        <text x="350" y="138" fill="#86a89b" font-size="12">• повернуться немного:</text>
+        <text x="350" y="156" fill="#86a89b" font-size="12">  по потоку соседей</text>
+        <text x="350" y="174" fill="#86a89b" font-size="12">  + в сторону, где жарче</text>
+        <text x="350" y="204" fill="#86a89b" font-size="12">• не знает, где проёмы</text>
+        <text x="350" y="222" fill="#86a89b" font-size="12">  и что делают дальние</text>
+      </svg>
+      <div><ol>
+          <li><b>Воздух.</b> Теплица — сетка ячеек по 0,5 м. Солнце греет (в середине сильнее), немного тепла уходит через стекло.
+            Главный путь наружу — проёмы в торцах: там воздух смешивается с уличным (26 °C), тем быстрее, чем сильнее поток через проём.</li>
+          <li><b>Вентилятор</b> делает струю вперёд (расширяется и слабеет с расстоянием) и слабое подсасывание сзади.
+            Струи всех работающих вентиляторов складываются, и воздух переносит тепло.</li>
+          <li><b>Правило пчелы</b> — на схеме. Поворот — не больше 20° за раз, с небольшой случайностью.</li>
+        </ol>
+        <p><b>Настоящие пчёлы.</b> Пчёлы-вентиляторщицы у летка разделяются на «вдох» и «выдох» и создают сквозной поток через
+          улей (Peters и др., 2019). Разные пороги у пчёл из разных отцовских линий делают температуру в улье стабильнее
+          (Jones и др., <i>Science</i> 2004). В нашей теплице воздух слишком инерционен, чтобы проявился этот второй эффект,
+          зато видна экономия: включаются только те, кому жарко.</p>
+        <p class="note">Модель упрощённая: струи складываются как стрелки, давление и потолок не считаются. Время на графиках —
+          шаги модели, примерно секунды. Код: <code>js/greenhouse.js</code> (без DOM), <code>js/app.js</code>.</p>
+      </div>
+    </div>
+  </section>
+  <script src="js/rng.js"></script>
+  <script src="js/greenhouse.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
