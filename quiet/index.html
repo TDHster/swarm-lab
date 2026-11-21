@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Стена, которая гасит гул</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%2308130f%27/%3E%3Cpath d=%27M4 16 Q8 6 12 16 T20 16 T28 16%27 stroke=%27%233ee6b0%27 stroke-width=%273%27 fill=%27none%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <a class="home" href="../index.html">← Роевой интеллект</a>
+    <h1>Тишина роем</h1>
+    <nav class="tabs"><a class="active" href="index.html">Стена гасит гул</a><a href="zone.html">Тихая зона</a><a href="fans.html">Вентиляторы в серверной</a></nav>
+    <p>Гул в комнате обычно тональный: трансформатор поёт на 100 Гц, компрессор — на своей частоте, вытяжка — на своей.
+      Против низкого тона хорош <b>резонатор Гельмгольца</b> — коробка с горлышком, как бутылка, в которую дуют. Но он гасит
+      только узкую полосу около своей частоты. Здесь стена собрана из 72 таких коробок с <b>подвижным дном</b>: чем глубже коробка,
+      тем ниже её тон. У каждой ячейки свой микрофон, и она понемногу крутит винт. Никто не распределяет, какая ячейка какой тон гасит.</p>
+  </header>
+  <section class="controls">
+    <div class="buttons">
+      <button id="btn-run" class="primary">⏸ Пауза</button>
+      <button id="btn-reset">↺ Сбить настройку</button>
+      <button id="btn-csv">⬇ Глубины ячеек (CSV)</button>
+      <label class="inline">seed <input id="seed" type="number" value="1"></label>
+    </div>
+    <div class="groups">
+      <fieldset><legend>Правило ячейки</legend>
+        <label class="slider"><span>Что слышит ячейка</span><select id="rule">
+          <option value="local">свой микрофон</option>
+          <option value="room">общий микрофон</option></select></label>
+        <div id="group-rule"></div>
+      </fieldset>
+      <fieldset><legend>Источники гула</legend><div class="srcs" id="srcs"></div><div id="group-cell"></div></fieldset>
+    </div>
+  </section>
+  <main>
+    <section class="panel field-panel">
+      <div class="stats" id="stats"></div>
+      <canvas id="field"></canvas>
+      <div class="legend">
+        <span><i class="hue-f"></i>частота ячейки: 80 → 310 Гц</span>
+        <span class="muted">Вид на стену спереди, цифра в ячейке — глубина коробки в см. Кружки с волнами — источники
+          (размер — насколько близко к стене).</span>
+      </div>
+    </section>
+    <section class="panel side">
+      <div class="charts">
+        <h2>Громкость тонов</h2>
+        <canvas id="chart-spec"></canvas>
+        <h2>Общая громкость, дБ</h2>
+        <canvas id="chart-db"></canvas>
+      </div>
+      <h2>Что попробовать</h2>
+      <ul class="try">
+        <li><b>С начала</b> ячейки настроены как попало, и это уже −3…−3,6 дБ. Секунд за 15 каждая уходит к тону, который громче всего
+          в её углу. Стена сама делится примерно 28 / 26 / 17 ячеек на трансформатор / компрессор / вытяжку, итог — −7 дБ.
+          Это в пределах 0,1 дБ от лучшего распределения, найденного перебором со знанием всей комнаты.</li>
+        <li><b>Общий микрофон комнаты.</b> Все слышат одно и то же и бросаются на самый громкий тон. Он стихает, и все хором
+          бегут к следующему. Стена дрожит и даёт лишь −3…−4 дБ, не лучше случайной настройки. Разделение труда дал
+          именно <b>разный слух</b> разных углов.</li>
+        <li><b>Выключи компрессор.</b> Его ячейки секунд за шесть переходят к трансформатору и вытяжке: −9,5 дБ, снова почти оптимум.
+          Включи обратно — стена перестроится.</li>
+        <li><b>Скачай глубины.</b> CSV — готовая таблица для изготовления: ряд, столбец, частота и глубина коробки 10 × 10 см
+          с горлышком ⌀2 × 3 см. Диапазон — от 2 см (310 Гц) до 31 см (80 Гц).</li>
+      </ul>
+    </section>
+  </main>
+  <section class="panel explain"><h2>Как это устроено</h2>
+    <div class="explain-grid">
+      <svg class="scheme" viewBox="0 0 560 300" role="img" aria-label="Схема ячейки-резонатора">
+        <defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#ff7ab6"/></marker></defs>
+        <!-- the cell in section -->
+        <path d="M60 60 H200 V240 H60 Z" fill="#0f1f1a" stroke="#3ee6b0" stroke-width="3"/>
+        <rect x="56" y="135" width="8" height="30" fill="#08130f"/>
+        <path d="M20 135 H64 M20 165 H64" stroke="#3ee6b0" stroke-width="3"/>
+        <text x="20" y="125" fill="#3ee6b0" font-size="12">горлышко</text>
+        <rect x="160" y="64" width="12" height="172" fill="#f5d76e"/>
+        <path d="M172 150 H250" stroke="#f5d76e" stroke-width="3"/>
+        <text x="215" y="140" fill="#f5d76e" font-size="12">винт двигает дно</text>
+        <circle cx="95" cy="100" r="8" fill="#ff7ab6"/>
+        <text x="110" y="104" fill="#ff7ab6" font-size="12">микрофон</text>
+        <text x="130" y="275" fill="#86a89b" font-size="12" text-anchor="middle">глубже коробка → ниже тон</text>
+        <!-- the rule -->
+        <text x="290" y="60" fill="#dcefe7" font-size="13">Каждые полсекунды:</text>
+        <text x="290" y="90" fill="#86a89b" font-size="12">1. какой тон громче всего у меня?</text>
+        <text x="290" y="115" fill="#86a89b" font-size="12">2. повернуть винт на шаг к нему</text>
+        <path d="M300 160 Q 380 130 460 160" fill="none" stroke="#3ee6b0" stroke-width="2"/>
+        <path d="M300 200 Q 340 200 360 170 Q 380 140 400 170 Q 420 200 460 200" fill="none" stroke="#ff7ab6" stroke-width="2"/>
+        <text x="290" y="235" fill="#86a89b" font-size="12">поглощение ячейки — узкий «горб»</text>
+        <text x="290" y="255" fill="#86a89b" font-size="12">около её частоты (ширина — добротность Q)</text>
+      </svg>
+      <div><ol>
+          <li><b>Ячейка</b> — коробка 10 × 10 см с горлышком. Воздух в горлышке — грузик, воздух в коробке — пружина.
+            Частота f = c/2π · √(S / (V·L)), где S и L — сечение и длина горлышка, V — объём коробки. Подвижное дно меняет V.</li>
+          <li><b>Микрофон</b> ячейки слышит в основном близкие источники: громкость падает с расстоянием.</li>
+          <li><b>Правило:</b> найти самый громкий тон у себя и сделать шаг винтом к нему. Чем больше ячеек сидят на тоне,
+            тем тише он становится, и соседи переключаются на следующий. Отдача убывает, поэтому работа сама делится.</li>
+          <li><b>Комната:</b> энергия тона = мощность / (своё поглощение комнаты + поглощение всех ячеек, настроенных на этот тон,
+            с весом близости к источнику).</li>
+        </ol>
+        <p><b>Почему это работает.</b> Это та же задача, что у пчёл, распределяющих работу: каждый откликается на
+          то, чего не хватает рядом, и спрос на работу падает, когда её делают другие. Важно, чтобы разные участники
+          слышали разное. Когда у всех один общий сигнал, они действуют хором и мешают друг другу.</p>
+        <p class="note">Модель упрощённая: в комнате нет стоячих волн (мод), есть только затухание с расстоянием. Настоящую
+          стену имеет смысл настраивать по микрофонам на месте — именно так и предлагает рой. Код: <code>js/wall.js</code>,
+          <code>js/wall-app.js</code>.</p>
+      </div>
+    </div>
+  </section>
+  <script src="js/rng.js"></script>
+  <script src="js/wall.js"></script>
+  <script src="js/wall-app.js"></script>
+</body>
+</html>
