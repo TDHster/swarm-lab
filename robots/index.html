@@ -27,7 +27,7 @@
       <fieldset>
         <legend>Задача</legend>
         <label class="slider"><span>Фигура</span><select id="shape"></select></label>
-        <label class="slider"><span>Роботов</span><input id="count" type="range" min="50" max="400" step="10" value="110"><output id="count-out"></output></label>
+        <label class="slider"><span>Роботов</span><input id="count" type="range" min="50" max="400" step="10" value="150"><output id="count-out"></output></label>
         <label class="slider" title="Относительная ошибка, с которой робот измеряет расстояние до соседа"><span>Шум датчика</span><input id="noise" type="range" min="0" max="0.05" step="0.005" value="0"><output id="noise-out"></output></label>
       </fieldset>
       <fieldset>
@@ -63,6 +63,9 @@
             «Где робот себя видит»: белые чёрточки — расхождение между настоящим местом и тем, где робот себя считает.
             У настоящих Kilobot фигуры тоже выходили кривоватыми — по той же причине.</li>
           <li><b>Лишние роботы</b> кружат вокруг готовой фигуры бесконечно: места внутри нет, а войти через уже занятый край нельзя.</li>
+          <li><b>Меньше роботов — не всегда просто «меньше фигуры».</b> Для «К» при 150 роботах сборка доходит до ~95%,
+            а при 130 и 110 застревает на ~77% и ~57%: роботы ещё есть, но вход в фигуру закупорен. От числа роботов
+            меняется стартовая группа и путь к входу. Это слабое место нашей упрощённой езды вдоль края (см. README).</li>
         </ul></div>
     </section>
   </main>
