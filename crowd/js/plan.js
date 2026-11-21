@@ -22,7 +22,7 @@ function rectWalls(x0, y0, x1, y1, gaps) {
     let t = 0;
     for (const [c0, c1] of cuts) {
       if (c0 > t) walls.push({ x1: ax + ux * t, y1: ay + uy * t, x2: ax + ux * c0, y2: ay + uy * c0 });
-      t = c1;
+      t = Math.max(t, c1);   // overlapping doorways merge
     }
     if (t < len) walls.push({ x1: ax + ux * t, y1: ay + uy * t, x2: bx, y2: by });
   };
@@ -68,6 +68,38 @@ function makeScenario(name, opts) {
     p.periodic = true;
     p.flows = [{ dx: 1, dy: 0 }, { dx: 0, dy: -1 }];
     p.spawns.push({ x0: 0, y0: 0, x1: WORLD_W, y1: WORLD_H, count: opts.count, flows: [0, 1] });
+  }
+  return p;
+}
+
+// ---- the room for plan evolution -----------------------------------------------------------------
+// A hall 16 x 11 m; doors are cut into its walls by a genome: [{ on, side: 0..3, pos: 0..1 }].
+const DOOR_ROOM = { x0: 3, y0: 3, x1: 19, y1: 14 };
+const DOOR_SIDES = ['top', 'bottom', 'left', 'right'];
+
+// opts: { width (m), layout: 'groups' | 'even' }
+function makeDoorRoom(genome, opts) {
+  const { x0, y0, x1, y1 } = DOOR_ROOM, w = opts.width;
+  const p = makePlan();
+  const gaps = genome.filter(d => d.on).map(d => {
+    const side = DOOR_SIDES[d.side], L = side === 'top' || side === 'bottom' ? x1 - x0 : y1 - y0;
+    return { side, at: w / 2 + 0.4 + d.pos * (L - w - 0.8), width: w };
+  });
+  p.walls = rectWalls(x0, y0, x1, y1, gaps);
+  for (const g of gaps) {
+    const a = g.at - g.width / 2 - 0.5, b = g.at + g.width / 2 + 0.5;
+    if (g.side === 'top') p.exits.push({ x0: x0 + a, y0: y0 - 2, x1: x0 + b, y1: y0 - 0.6 });
+    if (g.side === 'bottom') p.exits.push({ x0: x0 + a, y0: y1 + 0.6, x1: x0 + b, y1: y1 + 2 });
+    if (g.side === 'left') p.exits.push({ x0: x0 - 2, y0: y0 + a, x1: x0 - 0.6, y1: y0 + b });
+    if (g.side === 'right') p.exits.push({ x0: x1 + 0.6, y0: y0 + a, x1: x1 + 2, y1: y0 + b });
+  }
+  p.exits.forEach((e, k) => { e.label = `дверь ${k + 1}`; });
+  if (opts.layout === 'even') {
+    p.spawns.push({ x0: x0 + 0.5, y0: y0 + 0.5, x1: x1 - 0.5, y1: y1 - 0.5, count: 140, target: -1 });
+  } else {
+    // Uneven audience: a big block in the lower left, a small group in the upper right.
+    p.spawns.push({ x0: x0 + 0.5, y0: y0 + 4.5, x1: x0 + 8, y1: y1 - 0.5, count: 100, target: -1 });
+    p.spawns.push({ x0: x1 - 5, y0: y0 + 0.5, x1: x1 - 0.5, y1: y0 + 4, count: 40, target: -1 });
   }
   return p;
 }
@@ -227,5 +259,5 @@ function navDirection(field, x, y, out) {
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { WORLD_W, WORLD_H, NAV_CELL, makePlan, makeScenario, rectWalls, segDist, navCosts, buildNavField, navDirection };
+  module.exports = { WORLD_W, WORLD_H, NAV_CELL, DOOR_ROOM, DOOR_SIDES, makePlan, makeScenario, makeDoorRoom, rectWalls, segDist, navCosts, buildNavField, navDirection };
 }

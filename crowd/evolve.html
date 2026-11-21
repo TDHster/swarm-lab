@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Эволюция выходов</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%2308130f%27/%3E%3Cpath d=%27M26 16 L8 8 L12 16 L8 24 Z%27 fill=%27%233ee6b0%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <a class="home" href="index.html">← Толпа и эвакуация</a>
+    <h1>Эволюция выходов</h1>
+    <p>Где прорубить двери в зале, чтобы люди вышли быстрее? Каждая дверь чего-то стоит, поэтому «побольше дверей везде» —
+      не ответ. Генетический алгоритм (тот же, что в <a href="https://genetic.tdhster.workers.dev/">генетических проектах</a>:
+      из трёх случайных планов худший погибает, два других дают потомка с одной мутацией) двигает до трёх дверей по стенам,
+      а каждый план проверяется настоящей эвакуацией 140 человек в модели социальных сил.
+      <b>Оценка = время эвакуации + цена дверей</b> (+ штраф за давку).</p>
+  </header>
+
+  <section class="controls">
+    <div class="buttons">
+      <button id="btn-run" class="primary">▶ Эволюция</button>
+      <button id="btn-reset">↺ Заново</button>
+      <span class="muted" id="status"></span>
+    </div>
+    <div class="groups">
+      <fieldset>
+        <legend>Задача</legend>
+        <label class="slider" title="Любое изменение начинает эволюцию заново"><span>Цена двери</span>
+          <input id="cost" type="range" min="0" max="30" step="1" value="10"><output id="cost-out"></output></label>
+        <label class="slider"><span>Ширина двери</span>
+          <input id="width" type="range" min="0.8" max="2.4" step="0.1" value="1.2"><output id="width-out"></output></label>
+        <label class="slider"><span>Скорость людей</span>
+          <input id="v0" type="range" min="1" max="4" step="0.1" value="1.5"><output id="v0-out"></output></label>
+        <label class="slider"><span>Где сидят люди</span>
+          <select id="layout">
+            <option value="groups" selected>большая группа слева внизу + малая справа вверху</option>
+            <option value="even">равномерно по залу</option>
+          </select></label>
+      </fieldset>
+    </div>
+  </section>
+
+  <main>
+    <section class="panel field-panel">
+      <h2>Лучший план — эвакуация на «свежей» толпе</h2>
+      <canvas id="field"></canvas>
+      <div id="best-info" class="note"></div>
+    </section>
+
+    <section class="panel side">
+      <h2>Ход эволюции</h2>
+      <canvas id="chart"></canvas>
+      <p class="note"><b class="c-cog">Жёлтая</b> — оценка лучшего плана на тех трёх толпах, на которых идёт эволюция.
+        <b class="c-goal">Бирюзовая</b> — тот же план на шести <i>свежих</i> толпах, которых эволюция не видела.
+        Если жёлтая уходит вниз, а бирюзовая нет — эволюция подогнала план под случайности, а не нашла настоящее улучшение.</p>
+      <h2>Для сравнения (свежие толпы)</h2>
+      <div class="table-wrap">
+        <table class="mini">
+          <thead><tr><th>план</th><th>время</th><th>дверей</th><th>оценка</th></tr></thead>
+          <tbody id="baselines"></tbody>
+        </table>
+      </div>
+      <p class="note">Считается в фоне на <span id="workers">?</span> потоках. Один план — три полных эвакуации, поэтому
+        эволюция небыстрая: 2–4 минуты до хорошего ответа.</p>
+    </section>
+  </main>
+
+  <section class="panel explain">
+    <h2>Что получалось у нас</h2>
+    <ul class="try">
+      <li><b>Цена двери 10 с, люди группами.</b> Ответы от запуска к запуску разные, но все — рядом с большой группой.
+        Например, две двери на левой стене возле неё: ~24 с и оценка ~44 против 77 у одной двери посередине правой стены.
+        В другом запуске эволюция поставила две двери вплотную на одной стене — получилась одна широкая, хотя ширина каждой
+        «по правилам» 1,2 м. Это лазейка в постановке задачи, а не ошибка: такие лазейки эволюция находит всегда.</li>
+      <li><b>Две двери «по-честному», по одной на длинных стенах,</b> — 44–47 с: большая группа идёт к ближней двери,
+        и та становится узким местом. Симметричный план не учитывает, где сидят люди.</li>
+      <li><b>Сначала мы пробовали эволюцию колонн перед дверью.</b> На обучающих толпах она «находила» расстановку на 6–11% лучше,
+        а на свежих — никакой разницы с пустым залом. Поэтому здесь всегда есть проверка на свежих толпах.</li>
+    </ul>
+  </section>
+
+  <script src="js/rng.js"></script>
+  <script src="js/plan.js"></script>
+  <script src="js/model.js"></script>
+  <script src="js/draw.js"></script>
+  <script src="js/evolve.js"></script>
+</body>
+</html>

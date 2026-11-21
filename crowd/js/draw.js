@@ -120,8 +120,8 @@ function drawCrowd(ctx, crowd, opts) {
   }
 }
 
-// Line chart: series = [{ values, color }], shared y from 0 to `top`; x - time from 0 to tMax.
-function drawLines(ctx, series, tMax, top, label) {
+// Line chart: series = [{ values, color }], shared y from `bottom` to `top`; x from 0 to tMax.
+function drawLines(ctx, series, tMax, top, label, bottom = 0, xUnit = ' с') {
   const w = ctx.canvas.width, h = ctx.canvas.height, dpr = w / (ctx.canvas.clientWidth || w);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = '#040a08';
@@ -129,14 +129,15 @@ function drawLines(ctx, series, tMax, top, label) {
   ctx.fillStyle = '#86a89b';
   ctx.font = `${10 * dpr}px system-ui, sans-serif`;
   ctx.fillText(label, 4 * dpr, 12 * dpr);
-  ctx.fillText(`${tMax.toFixed(0)} с`, w - 34 * dpr, h - 4 * dpr);
+  ctx.fillText(`${tMax.toFixed(0)}${xUnit}`, w - 44 * dpr, h - 4 * dpr);
+  if (bottom) ctx.fillText(bottom.toFixed(0), 4 * dpr, h - 4 * dpr);
   for (const sr of series) {
     if (sr.values.length < 2) continue;
     ctx.strokeStyle = sr.color;
     ctx.lineWidth = 2 * dpr;
     ctx.beginPath();
     sr.values.forEach(([t, v], k) => {
-      const x = t / Math.max(1e-9, tMax) * w, y = h - 3 * dpr - v / top * (h - 18 * dpr);
+      const x = t / Math.max(1e-9, tMax) * w, y = h - 3 * dpr - (v - bottom) / Math.max(1e-9, top - bottom) * (h - 18 * dpr);
       if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y);
     });
     ctx.stroke();
