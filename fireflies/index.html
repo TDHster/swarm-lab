@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Светлячки: синхронные вспышки</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%2308130f%27/%3E%3Ccircle cx=%2710%27 cy=%2712%27 r=%273%27 fill=%27%23f5f08a%27/%3E%3Ccircle cx=%2222%27 cy=%2710%27 r=%273%27 fill=%27%23f5f08a%27/%3E%3Ccircle cx=%2716%27 cy=%2222%27 r=%273%27 fill=%27%23f5f08a%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <a class="home" href="../index.html">← Роевой интеллект</a>
+    <h1>Синхронизация: светлячки и мост</h1>
+    <nav class="tabs"><a class="active" href="index.html">Светлячки</a><a href="bridge.html">Мост Миллениум</a></nav>
+    <p>В мангровых зарослях Юго-Восточной Азии тысячи светлячков на одном дереве <b>вспыхивают одновременно</b>,
+      и дерево мигает целиком, как гирлянда. Дирижёра нет: у каждого светлячка свои внутренние часы, и он видит только
+      ближайших соседей. Правило одно: <b>увидел вспышку — чуть поторопись</b>. По той же схеме тысячи клеток-водителей ритма
+      в сердце задают один пульс (Пескин, 1975), а беспроводные датчики сверяют часы без центрального сервера.</p>
+  </header>
+  <section class="controls">
+    <div class="buttons">
+      <button id="btn-run" class="primary">⏸ Пауза</button>
+      <button id="btn-reset">↺ Заново</button>
+      <label class="inline">seed <input id="seed" type="number" value="1"></label>
+      <span class="label">Клик по полю — встряхнуть: светлячки рядом теряют ритм</span>
+    </div>
+    <div class="groups">
+      <fieldset id="group-swarm"><legend>Светлячки</legend></fieldset>
+      <fieldset id="group-rule"><legend>Правило</legend></fieldset>
+      <fieldset id="group-view"><legend>Вид</legend>
+        <label class="slider"><span>Радиус зрения у курсора</span><input id="show-r" type="checkbox" checked></label>
+      </fieldset>
+    </div>
+  </section>
+  <main>
+    <section class="panel field-panel">
+      <div class="stats" id="stats"></div>
+      <canvas id="field"></canvas>
+      <div class="legend">
+        <span style="--c:#f5f08a">вспышка</span>
+        <span style="--c:#3c5a3a">светлячок между вспышками</span>
+        <span style="--c:#ff7ab6">встряхнутое место (клик)</span>
+      </div>
+    </section>
+    <section class="panel side">
+      <div class="charts">
+        <h2>Сколько вспыхнуло (последние 10 с)</h2>
+        <canvas id="chart-flash"></canvas>
+        <h2>Синхронность r во времени</h2>
+        <canvas id="chart-r"></canvas>
+      </div>
+      <h2>Что попробовать</h2>
+      <ul class="try">
+        <li><b>С начала</b> вспышки идут россыпью. Через несколько секунд появляются мигающие пятна — местные группы.
+          Группы сливаются, и примерно через 20–30 с всё поле мигает разом (r ≈ 1).</li>
+        <li><b>Связь ε = 0</b>: светлячки не реагируют на соседей, и россыпь не кончается никогда (r ≈ 0,05).</li>
+        <li><b>Густота.</b> 150 светлячков так и остаются отдельными мигающими группами (r 0,4–0,6): соседей слишком мало,
+          и группы не дотягиваются друг до друга. 600 синхронизируются за ~6 с. Поэтому светлячки в мангровых зарослях собираются на одних деревьях.</li>
+        <li><b>Разные часы.</b> Разброс собственных периодов ±10% — синхронизация на грани (r 0,4–0,9), ±20% — её нет (r ≈ 0,2).
+          Подталкивание должно успевать исправлять расхождение за каждый период.</li>
+        <li><b>Радиус зрения 3</b> — все синхронны уже через 1–2 с. Вспышка одного толкает соседей за порог, их вспышки — следующих, и
+          за одно мгновение вспыхивает всё поле (лавина).</li>
+        <li><b>Встряхни</b> синхронное поле кликом: светлячки в розовом круге получают случайные фазы. Соседи затягивают их
+          обратно, и общий ритм возвращается за 1–20 с. Порядок чинит себя сам. Так и сеть датчиков переживает
+          перезагрузку части узлов.</li>
+      </ul>
+    </section>
+  </main>
+  <section class="panel explain"><h2>Как это устроено</h2>
+    <div class="explain-grid">
+      <svg class="scheme" viewBox="0 0 560 300" role="img" aria-label="Схема: внутренние часы светлячка">
+        <defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#ff7ab6"/></marker></defs>
+        <!-- the clock: phase goes around from 0 at the top, clockwise, flash at the top again -->
+        <circle cx="150" cy="150" r="100" fill="none" stroke="#1f3a32" stroke-width="10"/>
+        <path d="M150 50 A100 100 0 1 1 63 200" fill="none" stroke="#3ee6b0" stroke-width="10" opacity="0.5"/>
+        <circle cx="150" cy="50" r="14" fill="#f5f08a"/>
+        <text x="150" y="25" fill="#f5f08a" font-size="13" text-anchor="middle">фаза = 1: вспышка, снова 0</text>
+        <circle cx="63" cy="200" r="9" fill="#dcefe7"/>
+        <text x="150" y="146" fill="#dcefe7" font-size="13" text-anchor="middle">внутренние часы</text>
+        <text x="150" y="164" fill="#86a89b" font-size="12" text-anchor="middle">фаза растёт сама,</text>
+        <text x="150" y="180" fill="#86a89b" font-size="12" text-anchor="middle">период ≈ 1 с</text>
+        <!-- the nudge -->
+        <path d="M58 215 A110 110 0 0 1 42 130" fill="none" stroke="#ff7ab6" stroke-width="3" marker-end="url(#ah)"/>
+        <text x="14" y="270" fill="#ff7ab6" font-size="12">увидел вспышку → прыжок вперёд на ε·фаза</text>
+        <!-- neighbours -->
+        <circle cx="420" cy="110" r="70" fill="rgba(62,230,176,0.06)" stroke="#3ee6b0" stroke-dasharray="5 4"/>
+        <circle cx="420" cy="110" r="7" fill="#dcefe7"/>
+        <circle cx="460" cy="80" r="12" fill="#f5f08a"/><circle cx="460" cy="80" r="22" fill="#f5f08a" opacity="0.2"/>
+        <circle cx="385" cy="140" r="5" fill="#3c5a3a"/><circle cx="520" cy="190" r="5" fill="#3c5a3a"/>
+        <text x="420" y="200" fill="#3ee6b0" font-size="12" text-anchor="middle">радиус зрения</text>
+        <text x="420" y="240" fill="#86a89b" font-size="12" text-anchor="middle">Почти готов вспыхнуть — прыжок большой,</text>
+        <text x="420" y="256" fill="#86a89b" font-size="12" text-anchor="middle">может вспыхнуть сразу и толкнуть следующих.</text>
+        <text x="420" y="272" fill="#86a89b" font-size="12" text-anchor="middle">Только что вспыхнул — почти не сдвигается.</text>
+      </svg>
+      <div><ol>
+          <li><b>Часы.</b> У каждого светлячка фаза от 0 до 1. Она растёт сама, с периодом около секунды
+            (у каждого свой — ползунок «Разброс периодов»).</li>
+          <li><b>Вспышка.</b> Фаза дошла до 1 — вспышка, фаза снова 0.</li>
+          <li><b>Подталкивание.</b> Светлячок видит вспышку в радиусе зрения, и его фаза прыгает вперёд: фаза += ε·фаза.
+            Дошёл до 1 — вспыхивает в то же мгновение, и его вспышку видят следующие.</li>
+        </ol>
+        <p><b>Почему это сходится.</b> Двое, вспыхнувшие вместе, дальше живут одинаково: они «склеились» и больше не разойдутся.
+          Склеенная группа вспыхивает ярче — её вспышки толкают больше соседей и затягивают их в группу. Число групп
+          только уменьшается. Миролло и Строгац в 1990 году доказали, что при «все видят всех» и одинаковых часах синхронизация
+          наступает всегда.</p>
+        <p><b>Мера синхронности</b> r: каждую фазу рисуем стрелкой на циферблате и усредняем стрелки. r = 1 — все часы показывают
+          одно и то же, r ≈ 0 — стрелки разбросаны по кругу.</p>
+        <p><b>Где применяют.</b> Датчики беспроводных сетей сверяют часы, слушая «вспышки» соседей по радио (Werner-Allen и др., 2005):
+          нет главного сервера, который может отказать. Ещё пример — аплодисменты, которые сами переходят в дружный ритм.
+          Обратная сторона — <a href="bridge.html">мост Миллениум</a>.</p>
+        <p class="note">Код: <code>js/fireflies.js</code> — модель, <code>js/fireflies-app.js</code> — картинка.</p>
+      </div>
+    </div>
+  </section>
+  <script src="js/rng.js"></script>
+  <script src="js/fireflies.js"></script>
+  <script src="js/fireflies-app.js"></script>
+</body>
+</html>
