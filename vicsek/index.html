@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Фазовый переход в стае</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%2308130f%27/%3E%3Cpath d=%27M6 10 L14 8 M6 18 L14 16 M6 26 L14 24 M18 10 L26 8 M18 18 L26 16 M18 26 L26 24%27 stroke=%27%233ee6b0%27 stroke-width=%272.5%27 stroke-linecap=%27round%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <a class="home" href="../index.html">← Роевой интеллект</a>
+    <h1>Фазовый переход в стае</h1>
+    <p>Модель Вичека (1995) — самая простая стая: у частицы нет ни притяжения, ни отталкивания, ни целей. Она летит
+      с постоянной скоростью и на каждом шаге берёт <b>средний курс соседей</b> в радиусе 1, добавляя <b>случайную ошибку</b>.
+      При большой ошибке каждый летит куда попало, при малой весь рой летит в одну сторону. Переход между этими
+      состояниями резкий, как замерзание воды или намагничивание железа. Мера порядка —
+      <b>φ = длина средней скорости</b>: 1, если все летят одинаково, и около 0, если вразнобой.</p>
+  </header>
+  <section class="controls">
+    <div class="buttons">
+      <button id="btn-run" class="primary">⏸ Пауза</button>
+      <button id="btn-reset">↺ Вразнобой</button>
+      <button id="btn-align">→ Все в одну сторону</button>
+      <label class="inline">seed <input id="seed" type="number" value="1"></label>
+    </div>
+    <div class="groups">
+      <fieldset id="group-swarm"><legend>Рой</legend></fieldset>
+      <fieldset id="group-noise"><legend>Правило</legend></fieldset>
+      <fieldset id="group-view"><legend>Вид</legend>
+        <label class="slider"><span>Шлейфы</span><input id="trails" type="checkbox"></label>
+      </fieldset>
+    </div>
+  </section>
+  <main>
+    <section class="panel field-panel">
+      <div class="stats" id="stats"></div>
+      <canvas id="field"></canvas>
+      <div class="legend">
+        <span><i class="hue"></i>цвет — направление полёта</span>
+        <span class="muted">Края склеены: улетевший вправо появляется слева.</span>
+      </div>
+    </section>
+    <section class="panel side">
+      <h2>Порядок φ во времени</h2>
+      <canvas id="chart"></canvas>
+      <h2>Фазовая диаграмма</h2>
+      <div class="buttons">
+        <button id="btn-sweep">Снять кривую</button>
+        <label class="inline">по оси <select id="axis"><option value="eta">шум</option><option value="density">плотность</option></select></label>
+      </div>
+      <canvas id="phase"></canvas>
+      <p class="note" id="sweep-note">Кнопка прогоняет отдельный рой (до 1000 частиц) при 12 значениях шума или плотности
+        и ставит точку — средний φ. Розовая точка — то, что сейчас на поле.</p>
+      <h2>Что попробовать</h2>
+      <ul class="try">
+        <li><b>С начала</b> (шум 1) рой из хаоса выстраивается за ~100 шагов, φ ≈ 0,9. Сначала видны пятна одного цвета —
+          местные стайки, потом побеждает один цвет.</li>
+        <li><b>Повышай шум.</b> При плотности 2: η = 2 — φ ≈ 0,7, η = 3 — 0,3, η = 3,5 — 0,1, η = 5 — 0,03.
+          Переход — между 2,5 и 3,5. «Снять кривую» нарисует его целиком.</li>
+        <li><b>Как саранча.</b> Шум 2, ось «плотность», «Снять кривую»: при плотности 0,25 φ ≈ 0,06 (каждый сам по себе),
+          при 1 — 0,55, при 4 — 0,8. Порядок включается теснотой, а не командой.</li>
+        <li><b>Скорость 0</b>, потом «Вразнобой». Шум 2,5: стоящие стрелки складываются в пятна разных цветов,
+          φ гуляет от 0,1 до 0,3 (в среднем 0,2). При скорости 1 — ровно 0,65: летящие частицы меняют соседей и разносят
+          согласие по всему рою. Сними кривую при v₀ = 0, потом при 1 — прошлая кривая остаётся серой для сравнения.</li>
+        <li><b>Маленький рой.</b> При полном шуме φ не ноль, а ≈ 0,9/√N: у 100 частиц 0,09, у 1600 — 0,02 (пунктир на графике).
+          Поэтому у маленького роя переход размыт: при шуме 3,5 у 100 частиц φ ≈ 0,3, у 3200 — 0,06.
+          Настоящий скачок бывает только в бесконечно большой стае.</li>
+      </ul>
+    </section>
+  </main>
+  <section class="panel explain"><h2>Как это устроено</h2>
+    <div class="explain-grid">
+      <svg class="scheme" viewBox="0 0 560 330" role="img" aria-label="Схема частицы модели Вичека">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#dcefe7"/></marker>
+          <marker id="ahm" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#5f8f80"/></marker>
+          <marker id="ahg" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#3ee6b0"/></marker>
+          <marker id="ahp" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#ff7ab6"/></marker>
+        </defs>
+        <circle cx="190" cy="170" r="125" fill="rgba(62,230,176,0.06)" stroke="#3ee6b0" stroke-dasharray="6 5"/>
+        <text x="190" y="36" fill="#3ee6b0" font-size="13" text-anchor="middle">радиус R = 1: кого слушаем</text>
+        <!-- noise wedge around the average heading (-20 degrees), ±40 degrees -->
+        <path d="M190 170 L327 186 A138 138 0 0 0 301 89 Z" fill="rgba(255,122,182,0.18)" stroke="none"/>
+        <!-- neighbours inside -->
+        <g stroke="#dcefe7" stroke-width="2.5" marker-end="url(#ah)">
+          <line x1="110" y1="120" x2="150" y2="105"/>
+          <line x1="250" y1="230" x2="285" y2="200"/>
+          <line x1="120" y1="225" x2="160" y2="230"/>
+          <line x1="230" y1="95" x2="262" y2="70"/>
+        </g>
+        <g fill="#dcefe7"><circle cx="110" cy="120" r="5"/><circle cx="250" cy="230" r="5"/><circle cx="120" cy="225" r="5"/><circle cx="230" cy="95" r="5"/></g>
+        <!-- one outside: ignored -->
+        <line x1="370" y1="270" x2="340" y2="300" stroke="#5f8f80" stroke-width="2.5" marker-end="url(#ahm)"/>
+        <circle cx="370" cy="270" r="5" fill="#5f8f80"/>
+        <text x="380" y="266" fill="#86a89b" font-size="12">дальше R — не слушаем</text>
+        <!-- the particle, its average and new heading -->
+        <line x1="190" y1="170" x2="300" y2="130" stroke="#3ee6b0" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ahg)"/>
+        <line x1="190" y1="170" x2="306" y2="166" stroke="#ff7ab6" stroke-width="3" marker-end="url(#ahp)"/>
+        <line x1="190" y1="170" x2="215" y2="185" stroke="#f5d76e" stroke-width="2.5" marker-end="url(#ah)"/>
+        <circle cx="190" cy="170" r="7" fill="#f5d76e"/>
+        <text x="340" y="96" fill="#3ee6b0" font-size="13">средний курс соседей</text>
+        <text x="340" y="112" fill="#3ee6b0" font-size="13">(и свой — тоже)</text>
+        <text x="340" y="160" fill="#ff7ab6" font-size="13">новый курс = средний</text>
+        <text x="340" y="176" fill="#ff7ab6" font-size="13">+ случайный угол ±η/2</text>
+        <text x="340" y="200" fill="#ff7ab6" font-size="12" opacity="0.8">(розовый сектор)</text>
+        <text x="150" y="196" fill="#f5d76e" font-size="12">старый</text>
+        <text x="190" y="318" fill="#86a89b" font-size="12" text-anchor="middle">Скорость у всех одна — v₀. Шаг: все выбирают курс, потом все сдвигаются.</text>
+      </svg>
+      <div><ol>
+          <li><b>Соседи.</b> Частица смотрит на всех в радиусе 1, включая себя. Сколько их — зависит от плотности.</li>
+          <li><b>Средний курс.</b> Складываются единичные стрелки курсов соседей; направление суммы — средний курс.</li>
+          <li><b>Ошибка.</b> К среднему курсу добавляется случайный угол от −η/2 до +η/2. η = 0 — без ошибок,
+            η = 2π ≈ 6,28 — новый курс вообще случаен.</li>
+          <li><b>Шаг.</b> Все одновременно поворачивают на новый курс и сдвигаются на v₀.</li>
+        </ol>
+        <p><b>Почему переход резкий.</b> Порядок держится сам собой: если большинство соседей летит вправо, частица тоже
+          полетит вправо и поддержит соседей. Ошибки этот порядок разрушают. Пока ошибок мало, порядок восстанавливается
+          быстрее, чем рвётся. Есть критический шум, после которого побеждают ошибки. Точно так же магнит теряет намагниченность
+          выше температуры Кюри: каждая атомная «стрелка» поворачивается за соседями, а тепло их сбивает.</p>
+        <p><b>Чем стая отличается от магнита.</b> На плоскости стрелки, которые стоят на месте, по-настоящему упорядочиться не могут
+          (теорема Мермина–Вагнера): рой разбивается на области с разным направлением, и они не сливаются. Если стрелки летят,
+          они всё время меняют соседей и разносят согласие по всему рою — и дальний порядок появляется (Тонер и Ту, 1995).
+          Проверить: ползунок «Скорость» на 0.</p>
+        <p><b>В жизни.</b> Саранча: при малой плотности личинки ходят вразнобой, а выше критической плотности
+          марширует вся колонна (Buhl et al., <i>Science</i> 2006). То же происходит с косяками рыб, бактериями, клеточными
+          монослоями, а также с роями роботов, которым достаточно знать курс соседей.</p>
+        <p class="note">Код: <code>js/model.js</code> — частицы и правило, <code>js/app.js</code> — картинка и графики.</p>
+      </div>
+    </div>
+  </section>
+  <script src="js/rng.js"></script>
+  <script src="js/model.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
