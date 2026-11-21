@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Собака-пастух</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%2308130f%27/%3E%3Ccircle cx=%2712%27 cy=%2712%27 r=%273%27 fill=%27%23dcefe7%27/%3E%3Ccircle cx=%2718%27 cy=%2714%27 r=%273%27 fill=%27%23dcefe7%27/%3E%3Ccircle cx=%2714%27 cy=%2719%27 r=%273%27 fill=%27%23dcefe7%27/%3E%3Ccircle cx=%2724%27 cy=%2724%27 r=%273.5%27 fill=%27%23ff7ab6%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <a class="home" href="../index.html">← Роевой интеллект</a>
+    <h1>Собака-пастух</h1>
+    <p>Одна собака загоняет стадо в загон, и ей хватает <b>двух правил</b>. Если стадо держится кучно — зайти за него
+      с дальней от загона стороны и толкать. Если одна овца отбилась — зайти за неё и вернуть к остальным. Так в 2014 году
+      описали работу настоящих пастушьих собак (Strömbom и др.; правила проверяли по GPS-трекам собаки и овец). Овцы тоже
+      просты: держатся поближе к соседям, не толкаются и убегают от собаки. Можно попробовать пасти самому — курсором.</p>
+  </header>
+  <section class="controls">
+    <div class="buttons">
+      <button id="btn-run" class="primary">⏸ Пауза</button>
+      <button id="btn-reset">↺ Заново</button>
+      <span id="mode" class="buttons"><button data-mode="algo" class="active">Пасёт алгоритм</button><button data-mode="manual">Пасу сам (собака бежит к курсору)</button></span>
+      <label class="inline">seed <input id="seed" type="number" value="1"></label>
+    </div>
+    <div class="groups">
+      <fieldset id="group-sheep"><legend>Овцы</legend></fieldset>
+      <fieldset id="group-dog"><legend>Собака и вид</legend>
+        <label class="slider"><span>Показать правила собаки</span><input id="show-rules" type="checkbox" checked></label>
+      </fieldset>
+    </div>
+  </section>
+  <main>
+    <section class="panel field-panel">
+      <div class="stats" id="stats"></div>
+      <canvas id="field"></canvas>
+      <div class="legend">
+        <span style="--c:#dcefe7">овца (пасётся)</span>
+        <span style="--c:#f5d76e">овца убегает от собаки</span>
+        <span style="--c:#ff7ab6">собака</span>
+        <span class="muted">Пунктирный круг — «стадо кучное», если все внутри. Линия от собаки — куда она бежит.</span>
+      </div>
+    </section>
+    <section class="panel side">
+      <h2>Овец в загоне</h2>
+      <canvas id="chart"></canvas>
+      <p id="result"></p>
+      <h2>Результаты</h2>
+      <table class="mini"><thead><tr><th>кто пас</th><th>овец</th><th>шагов</th></tr></thead><tbody id="runs"></tbody></table>
+      <h2>Что попробовать</h2>
+      <ul class="try">
+        <li><b>С начала</b> (50 овец): собака бегает от отбившихся овец к стаду и обратно. Как только стадо собралось,
+          она заходит сзади и гонит его. Обычно загоняет за 270–700 шагов.</li>
+        <li><b>Пасу сам.</b> Попробуй загнать то же стадо курсором и сравни шаги в таблице. Подсказка из
+          правил собаки: не врывайся в стадо, сначала собери отбившихся, потом заходи сзади, с дальней от загона стороны.</li>
+        <li><b>Сплочённость 0</b>: овцы не тянутся к соседям — и собака не справляется вообще (0 из 50 за 8000 шагов).
+          Пасти можно только стадо, а не толпу одиночек. При 0,5 — справляется, но за 1300–3200 шагов.</li>
+        <li><b>Смотрят на соседей: 5%</b> (у 50 овец — трое ближайших). Стадо распадается на кучки, которые
+          бегут в разные стороны, и собака опять не справляется. Чем больше стадо, тем больше соседей нужно видеть:
+          100 овец, которые держатся за 25 ближайших, тоже не загоняются.</li>
+        <li><b>Пугливость 10</b>: овцы замечают собаку, только когда она совсем рядом, — не загоняются. При 20 — за 700–4000 шагов.</li>
+      </ul>
+    </section>
+  </main>
+  <section class="panel explain"><h2>Как это устроено</h2>
+    <div class="explain-grid">
+      <svg class="scheme" viewBox="0 0 560 300" role="img" aria-label="Схема: два режима собаки">
+        <defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#ff7ab6"/></marker></defs>
+        <rect x="0" y="0" width="560" height="300" fill="#0b1d14"/>
+        <!-- left: collecting -->
+        <text x="140" y="24" fill="#3ee6b0" font-size="14" text-anchor="middle">1. собрать</text>
+        <circle cx="120" cy="150" r="48" fill="none" stroke="#86a89b" stroke-dasharray="5 4"/>
+        <g fill="#dcefe7"><circle cx="110" cy="140" r="6"/><circle cx="125" cy="152" r="6"/><circle cx="105" cy="160" r="6"/><circle cx="132" cy="136" r="6"/><circle cx="118" cy="168" r="6"/></g>
+        <circle cx="215" cy="230" r="6" fill="#f5d76e"/>
+        <path d="M120 150 L235 250" stroke="#86a89b" stroke-dasharray="3 3"/>
+        <circle cx="240" cy="255" r="8" fill="#ff7ab6"/>
+        <text x="140" y="285" fill="#86a89b" font-size="12" text-anchor="middle">овца вне круга → встать за ней</text>
+        <path d="M214 230 L160 185" stroke="#f5d76e" stroke-width="2" marker-end="url(#ah)"/>
+        <!-- right: driving -->
+        <text x="420" y="24" fill="#3ee6b0" font-size="14" text-anchor="middle">2. гнать</text>
+        <rect x="490" y="40" width="60" height="50" fill="rgba(62,230,176,0.15)" stroke="#3ee6b0"/>
+        <text x="520" y="70" fill="#3ee6b0" font-size="12" text-anchor="middle">загон</text>
+        <circle cx="420" cy="160" r="48" fill="none" stroke="#86a89b" stroke-dasharray="5 4"/>
+        <g fill="#f5d76e"><circle cx="410" cy="150" r="6"/><circle cx="425" cy="162" r="6"/><circle cx="405" cy="170" r="6"/><circle cx="432" cy="146" r="6"/><circle cx="418" cy="178" r="6"/></g>
+        <path d="M520 65 L340 230" stroke="#86a89b" stroke-dasharray="3 3"/>
+        <circle cx="345" cy="226" r="8" fill="#ff7ab6"/>
+        <path d="M440 140 L480 100" stroke="#f5d76e" stroke-width="2" marker-end="url(#ah)"/>
+        <text x="420" y="285" fill="#86a89b" font-size="12" text-anchor="middle">все в круге → встать сзади, на линии от загона</text>
+      </svg>
+      <div><ol>
+          <li><b>Овца</b>, пока собака далеко, пасётся: изредка делает шаг в случайную сторону. Заметив собаку (ближе «пугливости»),
+            бежит, складывая пять стремлений: продолжать прежнее направление, к центру нескольких ближайших соседей
+            («сплочённость»), прочь от слишком близких овец, прочь от собаки, и немного случайности.</li>
+          <li><b>Кучно ли стадо?</b> Собака смотрит, все ли овцы в круге вокруг центра стада. Радиус растёт с числом овец
+            (как N<sup>2/3</sup>), потому что большое стадо занимает больше места.</li>
+          <li><b>Собрать.</b> Если кто-то вне круга — собака бежит к точке за самой дальней овцой (на линии «центр → овца»), и та
+            убегает от неё к стаду.</li>
+          <li><b>Гнать.</b> Если все в круге — собака бежит к точке за стадом на линии «загон → центр стада», и стадо убегает к загону.</li>
+          <li><b>Не врываться.</b> Если собака ближе трёх «личных пространств» к любой овце — она почти стоит: иначе стадо брызнет в стороны.</li>
+        </ol>
+        <p><b>Где применяют.</b> В конце 1990-х в Великобритании робот впервые загнал стаю уток в загон (Вон и др.).
+          В 2018 году дрон по похожим правилам отгонял стаю птиц от охраняемой зоны (Паранджапе и др.) — так можно защищать
+          взлётные полосы аэропортов. Красота модели в том, что пастуху не нужно управлять каждой овцой:
+          достаточно управлять стадом, а стадо держит себя само.</p>
+        <p class="note">Код: <code>js/model.js</code> — овцы и собака, <code>js/app.js</code> — картинка и режим «пасу сам».</p>
+      </div>
+    </div>
+  </section>
+  <script src="js/rng.js"></script>
+  <script src="js/model.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
