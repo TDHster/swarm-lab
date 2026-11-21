@@ -60,4 +60,28 @@ const SEEDS = [1, 2, 3];
   for (let t = 0; t < 120; t++) moved.step();
   check(moved.report().zone < -15, `hum moved: back to ${f1(moved.report().zone)} dB after 120 steps`);
 }
+
+// ---- server fans (one step = half a second); "pairs" = throbbing pairs heard in front of the rack ----
+{
+  const { Rack } = require('../js/fans.js');
+  const base = { fans: 8, mode: 'swarm', hear: 1.5, step: 20, cols: 2, thrift: 0.05 };
+  const avg = (r, T) => { let L = 0, P = 0; for (let t = 0; t < T; t++) { r.step(); L += r.listener(); P += r.power(); } return { L: L / T, P: P / T }; };
+  const run = (over, seed) => { const r = new Rack({ ...base, ...over }, makeRng(seed)); avg(r, 600); return avg(r, 200); };
+  const all = over => SEEDS.map(s => run(over, s));
+  const txt = rs => rs.map(r => `${r.L.toFixed(1)} pairs/${Math.round(r.P * 100)}%`).join(', ');
+  const plain = all({ mode: 'plain' }), plan = all({ mode: 'plan' }), swarm = all({}), greedy = all({ thrift: 0 });
+  check(plain.every(r => r.L > 5), `as usual: ${txt(plain)}`);
+  check(swarm.every(r => r.L < 5 && r.P < 1.1), `swarm: ${txt(swarm)}`);
+  check(plan.every(r => r.L < 4.5 && r.P < 1.06), `engineer's plan (5% steps): ${txt(plan)}`);
+  check(greedy.every(r => r.L < 3.2 && r.P > 1.35), `swarm, energy price 0: ${txt(greedy)}`);
+  // Settling time from "as usual", and recovery after swapping two fans.
+  const settle = SEEDS.map(seed => {
+    const r = new Rack({ ...base }, makeRng(seed)), xs = [];
+    for (let t = 0; t < 400; t++) { r.step(); xs.push(r.listener()); }
+    let k = 20; while (k < 399 && xs.slice(k - 20, k).reduce((a, b) => a + b) / 20 > 6) k++;
+    avg(r, 200); r.replace(3); r.replace(4); avg(r, 300);
+    return { k, after: avg(r, 200).L };
+  });
+  check(settle.every(s => s.k < 80 && s.after < 5), `swarm settles in ${settle.map(s => s.k / 2 + ' s').join(', ')}; after swapping 2 fans: ${settle.map(s => s.after.toFixed(1)).join(', ')} pairs`);
+}
 process.exit(failed ? 1 : 0);

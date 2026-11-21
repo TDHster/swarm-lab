@@ -128,3 +128,4 @@ code { background: #13291f; padding: 1px 4px; border-radius: 3px; font-size: 12p
 .srcs label { display: inline-flex; gap: 5px; align-items: center; }
 .hue-f { display: inline-block; width: 60px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 5px;
   background: linear-gradient(90deg, hsl(0 80% 60%), hsl(60 80% 60%), hsl(120 70% 55%), hsl(200 80% 60%), hsl(260 70% 65%)); }
+#mode button.active { border-color: var(--accent); color: var(--accent); }

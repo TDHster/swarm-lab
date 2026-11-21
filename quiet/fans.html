@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Вентиляторы ищут тишину</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%2308130f%27/%3E%3Cpath d=%27M4 16 Q8 6 12 16 T20 16 T28 16%27 stroke=%27%233ee6b0%27 stroke-width=%273%27 fill=%27none%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <a class="home" href="../index.html">← Роевой интеллект</a>
+    <h1>Тишина роем</h1>
+    <nav class="tabs"><a href="index.html">Стена гасит гул</a><a href="zone.html">Тихая зона</a><a class="active" href="fans.html">Вентиляторы в серверной</a></nav>
+    <p>Вентилятор гудит на частоте «лопасти × обороты». Два вентилятора на почти одинаковых оборотах звучат как один тон,
+      который <b>то нарастает, то стихает</b> — это биения, тот самый «вау-вау» серверной. Сделать обороты точно равными нельзя:
+      вентиляторы отличаются на доли процента. Здесь у каждого вентилятора <b>свой микрофон</b> и правило бактерии,
+      ищущей еду: стало хуже — сменить направление, стало лучше — продолжать. Включи звук и послушай.</p>
+  </header>
+  <section class="controls">
+    <div class="buttons">
+      <button id="btn-run" class="primary">⏸ Пауза</button>
+      <button id="btn-sound">🔊 Слушать</button>
+      <span id="mode" class="buttons"><button data-mode="plain" class="active">Как обычно</button><button data-mode="plan">План инженера</button><button data-mode="swarm">Рой</button></span>
+      <button id="btn-swap">Заменить вентилятор</button>
+      <label class="inline">seed <input id="seed" type="number" value="1"></label>
+    </div>
+    <div class="groups">
+      <fieldset><legend>Стойка</legend><div id="group-rack"></div></fieldset>
+      <fieldset><legend>Правило вентилятора</legend><div id="group-rule"></div></fieldset>
+    </div>
+  </section>
+  <main>
+    <section class="panel field-panel">
+      <div class="stats" id="stats"></div>
+      <canvas id="field"></canvas>
+      <div class="legend">
+        <span><i class="hue-f"></i>тон вентилятора: 280 → 490 Гц</span>
+        <span style="--c:#ff7ab6">пара, которая пульсирует (мигает с частотой биений)</span>
+        <span class="muted">Справа — тоны всех вентиляторов на одной оси.</span>
+      </div>
+    </section>
+    <section class="panel side">
+      <div class="charts">
+        <h2>Пульсирующих пар</h2>
+        <canvas id="chart-a"></canvas>
+        <h2>Мощность вентиляторов</h2>
+        <canvas id="chart-p"></canvas>
+      </div>
+      <h2>Что попробовать</h2>
+      <ul class="try">
+        <li><b>Как обычно</b> (все на 3000 об/мин) — нажми «Слушать». Перед стойкой пульсируют 6–16 пар из 28,
+          сколько именно — зависит от того, как разошлись вентиляторы на заводе (seed).</li>
+        <li><b>Рой.</b> За 15–20 с вентиляторы расходятся по тонам: пульсирующих пар остаётся около 4–5, а мощность растёт
+          всего на 4–7%. На слух «вау-вау» сменяется ровным аккордом.</li>
+        <li><b>План инженера</b> — заранее заданные ступеньки по 5%. Он даёт то же самое: около 4 пар и +4%. Рой не лучше
+          хорошего плана. Его сила в другом — ему не нужен план, который придётся пересчитывать для каждой стойки.</li>
+        <li><b>Цена энергии 0.</b> Вентиляторам безразличны лишние обороты: пар меньше (~3), но мощность +45%.
+          Ползунок показывает честный компромисс «тишина или энергия».</li>
+        <li><b>Заменить вентилятор.</b> Новый приходит на номинальных оборотах со своим заводским разбросом. Рой снова
+          расходится и возвращается к ~4 парам.</li>
+      </ul>
+    </section>
+  </main>
+  <section class="panel explain"><h2>Как это устроено</h2>
+    <div class="explain-grid">
+      <svg class="scheme" viewBox="0 0 560 280" role="img" aria-label="Схема: биения двух близких тонов">
+        <path d="M20 70 Q 30 40 40 70 T 60 70 T 80 70 T 100 70 T 120 70 T 140 70 T 160 70 T 180 70 T 200 70 T 220 70 T 240 70 T 260 70" fill="none" stroke="#3ee6b0" stroke-width="2"/>
+        <text x="20" y="30" fill="#3ee6b0" font-size="12">вентилятор 1: 350 Гц</text>
+        <path d="M20 140 Q 31 110 42 140 T 64 140 T 86 140 T 108 140 T 130 140 T 152 140 T 174 140 T 196 140 T 218 140 T 240 140 T 262 140" fill="none" stroke="#5bb8ff" stroke-width="2"/>
+        <text x="20" y="100" fill="#5bb8ff" font-size="12">вентилятор 2: 354 Гц</text>
+        <path d="M20 215 C 60 175, 100 175, 140 215 C 180 255, 220 255, 260 215" fill="none" stroke="#ff7ab6" stroke-width="2" stroke-dasharray="4 3"/>
+        <path d="M20 215 C 60 255, 100 255, 140 215 C 180 175, 220 175, 260 215" fill="none" stroke="#ff7ab6" stroke-width="2" stroke-dasharray="4 3"/>
+        <text x="20" y="270" fill="#ff7ab6" font-size="12">вместе: громкость пульсирует 4 раза в секунду</text>
+        <text x="300" y="40" fill="#dcefe7" font-size="13">Правило вентилятора (каждые 0,5 с):</text>
+        <text x="300" y="70" fill="#86a89b" font-size="12">1. насколько неприятно сейчас?</text>
+        <text x="300" y="90" fill="#86a89b" font-size="12">   (биения у моего микрофона</text>
+        <text x="300" y="110" fill="#86a89b" font-size="12">   + цена лишних оборотов)</text>
+        <text x="300" y="140" fill="#86a89b" font-size="12">2. хуже, чем было? — сменить</text>
+        <text x="300" y="160" fill="#86a89b" font-size="12">   направление наугад</text>
+        <text x="300" y="190" fill="#86a89b" font-size="12">3. шаг оборотами в своём направлении,</text>
+        <text x="300" y="210" fill="#86a89b" font-size="12">   тем больше, чем хуже</text>
+        <text x="300" y="240" fill="#86a89b" font-size="12">4. не ниже оборотов, нужных для охлаждения</text>
+      </svg>
+      <div><ol>
+          <li><b>Тон</b> вентилятора = 7 лопастей × обороты / 60. При 3000 об/мин это 350 Гц.</li>
+          <li><b>Биения.</b> Два тона на f и f + Δ слышны как один, громкость которого пульсирует Δ раз в секунду. Хуже всего
+            пульсация 2–10 раз в секунду. Очень медленная почти незаметна, а разница больше 20 Гц слышна уже как аккорд.</li>
+          <li><b>Микрофон</b> вентилятора лучше слышит соседей (дальность — ползунок «Слух»). Человек перед стойкой
+            слышит все пары одинаково — по нему и считаются «пульсирующие пары».</li>
+          <li><b>Правило «бег и кувырок»</b> — так кишечная палочка находит еду, не зная, где она. Ей не нужно знать,
+            выше или ниже её соседи: достаточно помнить, стало ли лучше после прошлого шага.</li>
+        </ol>
+        <p><b>Чем рой лучше плана.</b> Плану нужно знать, сколько вентиляторов, и на нём держится вся настройка: каждой
+          стойке свой план. Рой ничего не знает заранее и пересобирается сам — после замены вентилятора, при другом их числе,
+          при старении подшипников.</p>
+        <p class="note">Модель упрощённая: одна гармоника, обороты меняются мгновенно, охлаждение задано нижним пределом 2400 об/мин.
+          Код: <code>js/fans.js</code>, <code>js/fans-app.js</code>.</p>
+      </div>
+    </div>
+  </section>
+  <script src="js/rng.js"></script>
+  <script src="js/fans.js"></script>
+  <script src="js/fans-app.js"></script>
+</body>
+</html>
