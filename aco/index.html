@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Муравьи развозят заказы</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%2308130f%27/%3E%3Cpath d=%27M26 16 L8 8 L12 16 L8 24 Z%27 fill=%27%233ee6b0%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <a class="home" href="../index.html">← Роевой интеллект</a>
+    <h1>Муравьи развозят заказы (ACO)</h1>
+    <p>Курьеру нужно объехать все адреса и вернуться на склад — по самому короткому кругу. Это <b>задача коммивояжёра</b>:
+      вариантов объезда больше, чем атомов во Вселенной уже при 60 адресах, и быстрого точного способа никто не знает.
+      В 1992 году Марко Дориго перенёс сюда идею <a href="../ants/index.html">муравьиной колонии</a>: виртуальные муравьи
+      строят маршруты, оставляют «феромон» на дорогах удачных маршрутов, а он испаряется. Здесь их сравнивают с тем,
+      что сделал бы человек: <b>ехать к ближайшему адресу</b> и <b>распутывать перекрёстки</b> (2-opt).</p>
+  </header>
+
+  <section class="controls">
+    <div class="buttons">
+      <button id="btn-run" class="primary">⏸ Пауза</button>
+      <button id="btn-restart" title="Новая колония на той же карте">↺ Колония заново</button>
+      <button id="btn-new" title="Новая случайная карта">🗺 Новая карта</button>
+      <label class="inline">seed <input id="seed" type="number" value="1"></label>
+    </div>
+    <div class="groups">
+      <fieldset id="group-map">
+        <legend>Карта</legend>
+        <label class="slider"><span>Адреса</span>
+          <select id="kind">
+            <option value="random" selected>случайно по городу</option>
+            <option value="clusters">кварталами</option>
+            <option value="circle">по кругу</option>
+            <option value="grid">сеткой</option>
+          </select></label>
+      </fieldset>
+      <fieldset id="group-ants">
+        <legend>Муравьи</legend>
+        <label class="slider" title="Каждый маршрут муравья распутывается 2-opt — так ACO применяют на практике"><span>+ 2-opt каждому</span><input id="ls" type="checkbox"></label>
+      </fieldset>
+      <fieldset id="group-run">
+        <legend>Вид</legend>
+        <label class="slider"><span>Показать для сравнения</span>
+          <select id="show">
+            <option value="none">—</option>
+            <option value="greedy">жадный маршрут</option>
+            <option value="two">жадный + 2-opt</option>
+            <option value="opt">точный оптимум (до 13 адресов)</option>
+          </select></label>
+        <label class="slider"><span>Феромон на дорогах</span><input id="show-tau" type="checkbox" checked></label>
+      </fieldset>
+    </div>
+  </section>
+
+  <main>
+    <section class="panel field-panel">
+      <div class="stats" id="stats"></div>
+      <canvas id="field"></canvas>
+      <div class="legend">
+        <span style="--c:#ff7ab6">склад; розовые линии — феромон (ярче — больше)</span>
+        <span style="--c:#f5d76e">лучший маршрут муравьёв</span>
+        <span style="--c:#5bb8ff">для сравнения</span>
+        <span class="muted">Клик по карте добавляет адрес или убирает его.</span>
+      </div>
+    </section>
+    <section class="panel side">
+      <h2>Сравнение</h2>
+      <div class="table-wrap"><table class="mini"><thead><tr><th>метод</th><th>длина</th><th></th><th></th></tr></thead><tbody id="table"></tbody></table></div>
+      <h2>Ход поиска</h2>
+      <canvas id="chart"></canvas>
+      <p class="note">Жёлтая — лучший маршрут колонии, бледная — лучший на этой итерации. Пунктиры — жадный, 2-opt и оптимум.</p>
+      <h2>Что попробовать</h2>
+      <ul class="try">
+        <li><b>13 адресов</b> — есть точный ответ перебором. В наших прогонах и муравьи, и 2-opt его находили, а жадный был длиннее на 0–30%.</li>
+        <li><b>50 адресов.</b> Жадный длиннее лучшего найденного на 6–18%, 2-opt — на 1–5%, муравьи за 300 итераций — на 0–0,2%.
+          Три независимых запуска «муравьи + 2-opt» сходились к одной длине — вероятно, это оптимум (доказать не можем).</li>
+        <li><b>100 адресов:</b> одни муравьи за 300 итераций — +0–4%, «муравьи + 2-opt» — лучшие. Так ACO и используют:
+          муравьи находят, <i>где</i> искать, локальный поиск доводит маршрут.</li>
+        <li><b>Память α = 0</b> — муравьи не слушают феромон, колония не учится: +20–30%.
+          <b>Близость β = 0</b> — муравьи не смотрят на расстояния: маршрут в 2–2,5 раза длиннее. Нужны обе подсказки.</li>
+        <li><b>Испарение 1%</b> — колония учится медленно (+3–11% за 300 итераций). <b>30%</b> — быстро забывает
+          и рано застревает на почти хорошем маршруте. Розовые дороги показывают, где колония уже «уверена».</li>
+      </ul>
+      <p class="note">Цифры — 3 карты на каждый размер, <code>node tools/smoke.js --table</code>.</p>
+    </section>
+  </main>
+
+  <section class="panel explain">
+    <h2>Как это устроено</h2>
+    <ol>
+      <li><b>Муравей строит маршрут</b> от случайного адреса: следующий выбирает случайно, с вероятностью
+        <span class="formula">τ^α · (1/d)^β</span> — феромон на дороге (опыт колонии) в степени <i>памяти α</i>,
+        умноженный на близость (здравый смысл) в степени <i>β</i>. Уже посещённые адреса пропускаются.</li>
+      <li><b>Испарение:</b> после каждой итерации на всех дорогах остаётся доля (1 − ρ) феромона.</li>
+      <li><b>Подкрепление:</b> лучший муравей итерации (а каждую 10-ю итерацию — лучший за всё время) кладёт 1/длина
+        на дороги своего маршрута. Короче маршрут — больше феромона.</li>
+      <li><b>Границы τmin…τmax</b> (Max-Min Ant System, Штютцле и Хоос, 2000): феромон не обнуляется и не растёт без
+        предела — так ни одна дорога не забывается совсем и колония не застревает навсегда.</li>
+      <li><b>Сравнение:</b> жадный — всегда к ближайшему непосещённому; 2-opt — пока разворот куска маршрута укорачивает
+        его, разворачивать (так исчезают все перекрёстки); точный оптимум — динамическое программирование Хелда–Карпа
+        по всем подмножествам адресов, работает только до ~13 адресов.</li>
+    </ol>
+    <p class="note">Где это применяют: маршрутизация в сетях связи (AntNet), развоз грузов с окнами времени,
+      расписания. Код: <code>js/tsp.js</code> — карты и обычные методы, <code>js/aco.js</code> — колония, <code>js/app.js</code> — страница.</p>
+  </section>
+
+  <script src="js/rng.js"></script>
+  <script src="js/tsp.js"></script>
+  <script src="js/aco.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
