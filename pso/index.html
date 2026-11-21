@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Рой частиц (PSO)</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%2308130f%27/%3E%3Cpath d=%27M26 16 L8 8 L12 16 L8 24 Z%27 fill=%27%233ee6b0%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <a class="home" href="../index.html">← Роевой интеллект</a>
+    <h1>Рой частиц (PSO)</h1>
+    <p>Как найти самую низкую точку холмистой местности в темноте, если можно только измерить высоту там, где стоишь?
+      Метод роя частиц (Кеннеди и Эберхарт, 1995) отправляет несколько десятков «разведчиков». Каждый помнит
+      <b class="c-cog">своё лучшее место</b> и знает <b class="c-soc">лучшее место всего роя</b> — и летит, смешивая
+      три желания: продолжить движение, вернуться к своей находке, полететь к находке роя.
+      Никаких производных и формул функции — только значения в точках. Поэтому PSO годится для задач, где функция —
+      чёрный ящик: настройка параметров, форма антенны, расписания.</p>
+  </header>
+
+  <section class="controls">
+    <div class="buttons">
+      <button id="btn-run" class="primary">⏸ Пауза</button>
+      <button id="btn-step" title="Остановить и сделать одну итерацию">1 итерация</button>
+      <button id="btn-reset" title="Новый рой с тем же seed (те же стартовые места)">↺ Сброс</button>
+      <button id="btn-new-seed" title="Случайный seed и новый рой">🎲 Новый рой</button>
+      <label class="inline" title="Seed: одинаковый seed — одинаковое начало">seed <input id="seed" type="number" value="1"></label>
+    </div>
+    <div class="buttons" id="presets">
+      <span class="label">Пресеты:</span>
+    </div>
+    <div class="groups">
+      <fieldset>
+        <legend>Задача</legend>
+        <label class="slider"><span>Функция</span><select id="fn"></select></label>
+        <label class="slider" title="Чью лучшую точку знает частица"><span>Кого слушает</span>
+          <select id="topology">
+            <option value="global" selected>весь рой</option>
+            <option value="ring">двух соседей (кольцо)</option>
+          </select></label>
+      </fieldset>
+      <fieldset id="group-rule"><legend>Правило движения</legend></fieldset>
+      <fieldset id="group-run"><legend>Рой</legend></fieldset>
+    </div>
+  </section>
+
+  <main>
+    <section class="panel field-panel">
+      <div class="panel-head">
+        <div class="stats" id="stats"></div>
+        <div class="checks">
+          <label class="inline"><input id="show-pbest" type="checkbox" checked> личные рекорды</label>
+          <label class="inline"><input id="show-min" type="checkbox" checked> настоящий минимум</label>
+          <label class="inline"><input id="show-one" type="checkbox"> скорость одной частицы</label>
+        </div>
+      </div>
+      <canvas id="field"></canvas>
+      <div class="legend">
+        <span class="muted">Тёмное — низко (это ищем), светлое — высоко; линии — уровни высоты.</span>
+        <span style="--c:#ffffff">частица</span>
+        <span style="--c:#86a89b">её лучшая точка</span>
+        <span style="--c:#ff7ab6">лучшая точка роя</span>
+        <span style="--c:#3ee6b0">настоящий минимум</span>
+        <span class="muted">«Скорость одной частицы»:</span>
+        <span style="--c:#5bb8ff">инерция</span>
+        <span style="--c:#f5d76e">к своему рекорду</span>
+        <span style="--c:#ff7ab6">к рекорду роя</span>
+        <span style="--c:#ffffff">итог</span>
+      </div>
+    </section>
+
+    <section class="panel side">
+      <h2>Сходимость</h2>
+      <canvas id="chart"></canvas>
+      <p class="note"><b class="c-cog">Жёлтая</b> — лучшее найденное значение (логарифмическая шкала, минимум функции — 0).
+        <b class="c-min">Бирюзовая</b> — разброс роя: как широко разлетелись частицы.
+        Хороший поиск: сначала рой широкий и значение падает, потом рой сжимается в точку.</p>
+
+      <h2>Что попробовать</h2>
+      <ul class="try">
+        <li><b>«Каждый сам за себя»</b> (c2 = 0). Частицы не делятся находками: каждая топчется у своей ямки.
+          На Растригине минимум находится в 12% запусков вместо 98%.</li>
+        <li><b>«Только за лидером»</b> (c1 = 0). Рой слишком рано сбегается к первому удачнику и может застрять в ловушке:
+          75% вместо 98%.</li>
+        <li><b>Швефель — обманщик.</b> Вторая по глубине яма далеко от лучшей, и рой часто садится в неё (успех 57%).
+          Переключи «Кого слушает» на кольцо: новость о находке идёт по рою медленнее, рой дольше исследует — 77%.</li>
+        <li><b>Розенброк, инерция.</b> Минимум на дне длинного изогнутого оврага. Без инерции (w = 0) рой тормозит
+          раньше времени (45%), без трения (w = 1) — долго мечется (65%), классика — 100%.</li>
+        <li><b>Химмельблау.</b> Четыре одинаково глубокие ямы — рой выбирает одну. Нажми «Новый рой» несколько раз.</li>
+        <li><b>Число частиц на Швефеле:</b> 10 → 30% успеха, 30 → 57%, 100 → 78%. Больше разведчиков — больше шансов.</li>
+      </ul>
+      <p class="note">Проценты — доля из 60 запусков, где рой за 200 итераций подошёл к минимуму ближе 1% ширины поля
+        (<code>node tools/smoke.js --table</code>).</p>
+    </section>
+  </main>
+
+  <section class="panel explain">
+    <h2>Как это устроено</h2>
+    <div class="explain-grid">
+      <svg class="scheme" viewBox="0 0 560 280" role="img" aria-label="Схема: из чего складывается скорость частицы">
+        <defs>
+          <marker id="m-in" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#5bb8ff"/></marker>
+          <marker id="m-cog" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#f5d76e"/></marker>
+          <marker id="m-soc" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#ff7ab6"/></marker>
+          <marker id="m-sum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#ffffff"/></marker>
+        </defs>
+        <!-- landscape contours -->
+        <g fill="none" stroke="#17707a" opacity="0.6">
+          <ellipse cx="430" cy="80" rx="40" ry="26"/><ellipse cx="430" cy="80" rx="80" ry="50"/>
+          <ellipse cx="430" cy="80" rx="130" ry="80"/><ellipse cx="110" cy="210" rx="30" ry="22"/>
+          <ellipse cx="110" cy="210" rx="60" ry="42"/>
+        </g>
+        <!-- personal best and swarm best -->
+        <circle cx="110" cy="210" r="7" fill="none" stroke="#f5d76e" stroke-width="2.5"/>
+        <text x="40" y="250" font-size="12" fill="#f5d76e">своя лучшая точка p</text>
+        <path d="M422 80 h16 M430 72 v16" stroke="#ff7ab6" stroke-width="3"/>
+        <text x="380" y="40" font-size="12" fill="#ff7ab6">лучшая точка роя g</text>
+        <!-- the particle and its previous move -->
+        <line x1="150" y1="60" x2="220" y2="120" stroke="#86a89b" stroke-dasharray="3 3"/>
+        <text x="110" y="52" font-size="11" fill="#86a89b">откуда летела</text>
+        <!-- three parts -->
+        <line x1="220" y1="120" x2="270" y2="163" stroke="#5bb8ff" stroke-width="3" marker-end="url(#m-in)"/>
+        <line x1="220" y1="120" x2="175" y2="168" stroke="#f5d76e" stroke-width="3" marker-end="url(#m-cog)"/>
+        <line x1="220" y1="120" x2="320" y2="100" stroke="#ff7ab6" stroke-width="3" marker-end="url(#m-soc)"/>
+        <line x1="220" y1="120" x2="322" y2="146" stroke="#ffffff" stroke-width="2" marker-end="url(#m-sum)"/>
+        <circle cx="220" cy="120" r="7" fill="#ffffff" stroke="#000"/>
+        <circle cx="322" cy="146" r="6" fill="none" stroke="#ffffff" stroke-dasharray="2 2"/>
+        <g font-size="12">
+          <text x="262" y="186" fill="#5bb8ff">w·v инерция</text>
+          <text x="140" y="186" fill="#f5d76e">c1·r1·(p−x)</text>
+          <text x="282" y="92" fill="#ff7ab6">c2·r2·(g−x)</text>
+          <text x="334" y="152" fill="#ffffff">новая скорость</text>
+        </g>
+      </svg>
+      <ol>
+        <li><b>Частица</b> — точка x на карте со скоростью v. Она помнит <span class="c-cog">свою лучшую точку p</span>
+          и знает <span class="c-soc">лучшую точку роя g</span> (при «кольце» — лучшую из своей и двух соседей по номеру).</li>
+        <li><b>Новая скорость</b> складывается из трёх частей:
+          <span class="formula">v ← w·v + c1·r1·(p − x) + c2·r2·(g − x)</span>,
+          где r1, r2 — случайные числа от 0 до 1, свои для каждой координаты. Случайность не даёт частице лететь
+          ровно в точку и заставляет обшаривать окрестность.</li>
+        <li><b>Шаг:</b> x ← x + v (скорость ограничена <i>пределом</i>, у края поля частица останавливается).
+          Потом в новой точке измеряется функция; если вышло лучше — это новый личный рекорд, а лучший из рекордов — рекорд роя.</li>
+        <li><b>Баланс.</b> Инерция и своя память — <i>исследование</i> (рой широкий), тяга к рою — <i>использование</i>
+          найденного (рой сжимается). Классические w = 0.72, c1 = c2 = 1.49 (Клерк и Кеннеди, 2002) подобраны так, чтобы рой
+          сходился, но не слишком быстро.</li>
+      </ol>
+    </div>
+    <p class="note">Код: <code>js/model.js</code> — функции и рой, <code>js/draw.js</code> — карта высот и частицы,
+      <code>js/app.js</code> — ползунки и цикл. Здесь всего 2 измерения, чтобы было видно; в настоящих задачах их десятки и сотни,
+      а формула та же.</p>
+  </section>
+
+  <script src="js/rng.js"></script>
+  <script src="js/model.js"></script>
+  <script src="js/draw.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Стая (Boids)</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%2308130f%27/%3E%3Cpath d=%27M26 16 L8 8 L12 16 L8 24 Z%27 fill=%27%233ee6b0%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <a class="home" href="../index.html">← Роевой интеллект</a>
+    <h1>Стая (Boids)</h1>
+    <p>В 1986 году Крейг Рейнольдс показал, что для стаи птиц не нужен вожак. Каждая птица («boid» — от bird-oid)
+      видит только соседей рядом и следует трём правилам: <b class="c-sep">не врезаться</b> в тех, кто слишком близко,
+      <b class="c-ali">лететь как соседи</b> и <b class="c-coh">держаться к ним поближе</b>. Больше ничего —
+      а на экране стаи сливаются, делятся, обтекают препятствия и разбегаются от хищника.
+      Двигай ползунки прямо на ходу: убери одно правило — и увидишь, за что оно отвечало.</p>
+  </header>
+
+  <section class="controls">
+    <div class="buttons">
+      <button id="btn-run" class="primary">⏸ Пауза</button>
+      <button id="btn-step" title="Остановить и сделать один шаг">1 шаг</button>
+      <button id="btn-reset" title="Птицы заново разлетаются из случайных мест (тот же seed — те же места)">↺ Сброс</button>
+      <label class="inline" title="Seed: одинаковый seed — одинаковое начало">seed <input id="seed" type="number" value="1"></label>
+    </div>
+    <div class="buttons" id="presets">
+      <span class="label">Пресеты:</span>
+    </div>
+    <button id="btn-random" title="Случайные правила и восприятие">🎲 Случайно</button>
+    <div class="groups">
+      <fieldset id="group-rules"><legend>Три правила (вес)</legend></fieldset>
+      <fieldset id="group-sense"><legend>Что видит птица</legend></fieldset>
+      <fieldset id="group-move"><legend>Движение</legend></fieldset>
+      <fieldset id="group-world">
+        <legend>Мир и вид</legend>
+        <label class="slider"><span>Края поля</span>
+          <select id="edges">
+            <option value="wrap" selected>сквозные (тор)</option>
+            <option value="walls">стены</option>
+          </select></label>
+        <label class="slider"><span>Цвет птиц</span>
+          <select id="color-mode">
+            <option value="mint">один цвет</option>
+            <option value="heading" selected>по направлению</option>
+            <option value="neighbors">по числу соседей</option>
+          </select></label>
+      </fieldset>
+    </div>
+  </section>
+
+  <main>
+    <section class="panel field-panel">
+      <div class="panel-head">
+        <div class="stats" id="stats"></div>
+        <div class="checks">
+          <label class="inline"><input id="predator-on" type="checkbox" checked> курсор — хищник</label>
+          <label class="inline"><input id="focus-on" type="checkbox"> силы одной птицы</label>
+          <label class="inline">клик:
+            <select id="click-mode">
+              <option value="obstacle" selected>препятствие (вкл/выкл)</option>
+              <option value="focus">выбрать птицу</option>
+            </select></label>
+          <button id="btn-clear">Убрать препятствия</button>
+        </div>
+      </div>
+      <div class="field">
+        <canvas id="trail"></canvas>
+        <canvas id="overlay"></canvas>
+      </div>
+      <div class="legend">
+        <span style="--c:#ff7ab6">хищник (курсор) и зона страха</span>
+        <span style="--c:#2a4a40">препятствие — клик ставит и убирает</span>
+        <span class="muted">«Силы одной птицы»: белая птица, её сектор обзора, соседи и стрелки сил (увеличены в 300 раз):</span>
+        <span style="--c:#ff6b5e">разделение</span>
+        <span style="--c:#5bb8ff">выравнивание</span>
+        <span style="--c:#f5d76e">сплочённость</span>
+        <span style="--c:#ff7ab6">бегство</span>
+        <span style="--c:#ffffff">сумма</span>
+      </div>
+    </section>
+
+    <section class="panel side">
+      <h2>Порядок стаи</h2>
+      <canvas id="chart"></canvas>
+      <p class="note">Порядок = длина среднего направления полёта: <b>1</b> — все летят в одну сторону,
+        около <b>0</b> — кто куда. Последние 10 секунд.</p>
+
+      <h2>Что попробовать</h2>
+      <ul class="try">
+        <li><b>Выравнивание → 0.</b> Порядок падает почти до нуля: птицы держатся кучками, но кучки бурлят на месте.</li>
+        <li><b>Сплочённость → 0.</b> Плотных стай больше нет: птицы равномерно расходятся по полю, соседей в 5 раз меньше, но летят все строем в одну сторону — порядок почти 1.</li>
+        <li><b>Разделение → 0.</b> Птицы слипаются в точки — без личного пространства стая схлопывается.</li>
+        <li><b>Угол обзора 270° → 60°.</b> Птицы не замечают тех, кто сзади, и догоняют передних: стаи уплотняются (соседей вдвое больше), порядок падает.</li>
+        <li><b>Радиус зрения 20 → 150.</b> Маленький — много мелких стай, большой — все видят почти всех, и поле летит как одно целое.</li>
+        <li><b>Хищник.</b> Проведи курсором сквозь стаю: она расступается и смыкается позади.</li>
+        <li><b>Препятствия.</b> Поставь несколько кругов при «стенах» — стая обтекает их, как вода.</li>
+      </ul>
+    </section>
+  </main>
+
+  <section class="panel explain">
+    <h2>Как это устроено</h2>
+    <div class="explain-grid">
+      <svg class="scheme" viewBox="0 0 560 280" role="img" aria-label="Схема: что видит одна птица и какие силы на неё действуют">
+        <!-- field of view: 270 degrees in front, blind spot behind -->
+        <path d="M200 140 L122.2 62.2 A110 110 0 1 1 122.2 217.8 Z" fill="rgba(220,239,231,0.06)" stroke="#86a89b" stroke-width="1"/>
+        <path d="M200 140 L122.2 62.2 M200 140 L122.2 217.8" stroke="#86a89b" stroke-dasharray="3 3"/>
+        <text x="40" y="146" fill="#86a89b" font-size="12">слепая зона</text>
+        <text x="282" y="44" fill="#86a89b" font-size="12">радиус зрения</text>
+        <line x1="200" y1="140" x2="278" y2="62" stroke="#86a89b" stroke-dasharray="2 4"/>
+        <!-- personal space -->
+        <circle cx="200" cy="140" r="40" fill="none" stroke="#ff6b5e" stroke-dasharray="4 3"/>
+        <!-- neighbors it sees -->
+        <g fill="#dcefe7">
+          <path d="M0 0 l-12 -5 l3 5 l-3 5 Z" transform="translate(252 105) rotate(14)"/>
+          <path d="M0 0 l-12 -5 l3 5 l-3 5 Z" transform="translate(282 150) rotate(14)"/>
+          <path d="M0 0 l-12 -5 l3 5 l-3 5 Z" transform="translate(229 163) rotate(14)"/>
+          <path d="M0 0 l-12 -5 l3 5 l-3 5 Z" transform="translate(172 92) rotate(14)"/>
+        </g>
+        <g stroke="#dcefe7" stroke-width="0.8" opacity="0.35">
+          <line x1="200" y1="140" x2="245" y2="105"/><line x1="200" y1="140" x2="275" y2="150"/>
+          <line x1="200" y1="140" x2="222" y2="163"/><line x1="200" y1="140" x2="165" y2="92"/>
+        </g>
+        <!-- not seen: behind and too far -->
+        <g fill="#4a5f58">
+          <path d="M0 0 l-12 -5 l3 5 l-3 5 Z" transform="translate(120 150) rotate(14)"/>
+          <path d="M0 0 l-12 -5 l3 5 l-3 5 Z" transform="translate(350 70) rotate(14)"/>
+        </g>
+        <!-- center of the visible neighbors -->
+        <path d="M223 124 l8 8 M231 124 l-8 8" stroke="#f5d76e" stroke-width="2"/>
+        <!-- forces -->
+        <defs>
+          <marker id="ah-sep" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#ff6b5e"/></marker>
+          <marker id="ah-ali" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#5bb8ff"/></marker>
+          <marker id="ah-coh" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#f5d76e"/></marker>
+        </defs>
+        <line x1="200" y1="140" x2="170" y2="109" stroke="#ff6b5e" stroke-width="3" marker-end="url(#ah-sep)"/>
+        <line x1="200" y1="140" x2="252" y2="152" stroke="#5bb8ff" stroke-width="3" marker-end="url(#ah-ali)"/>
+        <line x1="200" y1="140" x2="248" y2="119" stroke="#f5d76e" stroke-width="3" marker-end="url(#ah-coh)"/>
+        <!-- the boid itself -->
+        <path d="M216 140 L194 130 L199 140 L194 150 Z" fill="#3ee6b0" stroke="#000" stroke-width="0.8"/>
+        <!-- legend -->
+        <g font-size="13">
+          <text x="370" y="120" fill="#ff6b5e">← разделение</text>
+          <text x="370" y="140" fill="#5bb8ff">→ выравнивание</text>
+          <text x="370" y="160" fill="#f5d76e">→ сплочённость</text>
+          <text x="370" y="186" fill="#dcefe7">видимый сосед</text>
+          <text x="370" y="206" fill="#4a5f58">не виден</text>
+          <text x="370" y="226" fill="#ff6b5e">- - личное пространство</text>
+        </g>
+      </svg>
+      <ol>
+        <li><b>Кого видит птица.</b> Соседи ближе <i>радиуса зрения</i> и внутри <i>угла обзора</i>.
+          Те, кто сзади (слепая зона) или дальше, для неё не существуют.
+          Чтобы не перебирать всех со всеми, поле разбито на клетки размером с радиус зрения: соседи ищутся только
+          в своей клетке и восьми вокруг (<code>buildGrid</code> в <code>js/model.js</code>).</li>
+        <li><b>Три желания.</b> По видимым соседям птица считает три направления:
+          <span class="c-sep">разделение</span> — прочь от тех, кто ближе личного пространства (чем ближе, тем сильнее, вес 1/d);
+          <span class="c-ali">выравнивание</span> — средняя скорость соседей;
+          <span class="c-coh">сплочённость</span> — к центру соседей (жёлтый крестик).</li>
+        <li><b>Поворот, а не прыжок.</b> Каждое желание превращается в «рулевую» силу по Рейнольдсу:
+          <span class="formula">сила = желаемое направление × скорость − текущая скорость</span>, но не больше
+          <i>резкости поворота</i>. Силы умножаются на веса ползунков и складываются.</li>
+        <li><b>Мир.</b> Хищник добавляет силу бегства, препятствия и стены — силу отворота. Это не правила стаи,
+          это просто среда.</li>
+        <li><b>Шаг.</b> Сначала силы считаются для всех птиц, потом все разом сдвигаются — результат не зависит
+          от порядка птиц. Скорость держится между 40% и 100% максимальной. 60 шагов в секунду.</li>
+      </ol>
+    </div>
+    <p class="note">Ни в одном правиле нет слов «стая», «вожак» или «строй» — порядок, который видно на графике, возникает
+      сам. Это и есть <b>эмерджентность</b>: свойство целого, которого нет у частей.
+      Код: <code>js/model.js</code> — правила, <code>js/draw.js</code> — картинка, <code>js/app.js</code> — ползунки и цикл.</p>
+  </section>
+
+  <script src="js/rng.js"></script>
+  <script src="js/model.js"></script>
+  <script src="js/draw.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

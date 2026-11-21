@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Роевой интеллект</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%2308130f%27/%3E%3Cpath d=%27M26 16 L8 8 L12 16 L8 24 Z%27 fill=%27%233ee6b0%27/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --bg: #08130f;
+      --panel: #0f1f1a;
+      --border: #1f3a32;
+      --text: #dcefe7;
+      --muted: #86a89b;
+      --accent: #3ee6b0;
+      --pink: #ff7ab6;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 32px 16px;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.5 system-ui, -apple-system, sans-serif;
+    }
+    main { max-width: 960px; margin: 0 auto; }
+    h1 { margin: 0 0 8px; font-size: 26px; }
+    .lead { margin: 0 0 28px; color: var(--muted); max-width: 720px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 16px; }
+    .card {
+      display: flex; flex-direction: column;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+      padding: 18px; color: inherit; text-decoration: none;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+    a.card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .card svg { width: 100%; height: 150px; background: #040a08; border-radius: 8px; margin-bottom: 14px; }
+    .card h2 { margin: 0 0 6px; font-size: 19px; }
+    .card p { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
+    .card .go { margin-top: auto; color: var(--accent); font-weight: 600; }
+    .card.soon { opacity: 0.6; }
+    .card.soon .go { color: var(--muted); font-weight: normal; font-style: italic; }
+    .common { margin-top: 28px; color: var(--muted); font-size: 14px; max-width: 720px; }
+    .common a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Роевой интеллект</h1>
+    <p class="lead">Учебные симуляции: у каждого агента — птицы, муравья, клетки слизевика, частицы — несколько простых
+      правил и только то, что он видит рядом с собой. Никто не командует стаей, но вместе они строят стаи, тропы,
+      транспортные сети и находят минимум сложной функции. Всё считается прямо в браузере, параметры меняются на ходу.</p>
+
+    <div class="cards">
+      <a class="card" href="boids/index.html">
+        <svg viewBox="0 0 380 150" aria-hidden="true">
+          <g fill="#3ee6b0">
+            <path d="M120 60 l-14 -5 l3 5 l-3 5 Z"/><path d="M145 48 l-14 -5 l3 5 l-3 5 Z"/>
+            <path d="M150 74 l-14 -5 l3 5 l-3 5 Z"/><path d="M172 58 l-14 -5 l3 5 l-3 5 Z"/>
+            <path d="M178 86 l-14 -5 l3 5 l-3 5 Z"/><path d="M198 44 l-14 -5 l3 5 l-3 5 Z"/>
+            <path d="M204 70 l-14 -5 l3 5 l-3 5 Z"/><path d="M226 56 l-14 -5 l3 5 l-3 5 Z"/>
+            <path d="M232 82 l-14 -5 l3 5 l-3 5 Z"/><path d="M254 66 l-14 -5 l3 5 l-3 5 Z"/>
+          </g>
+          <g stroke="#3ee6b0" stroke-width="1.2" opacity="0.35" fill="none">
+            <path d="M106 60 q-30 6 -60 0"/><path d="M136 74 q-30 8 -60 2"/><path d="M164 86 q-30 8 -60 4"/>
+          </g>
+          <circle cx="204" cy="70" r="40" fill="none" stroke="#ff7ab6" stroke-dasharray="4 4" opacity="0.7"/>
+          <circle cx="310" cy="118" r="9" fill="#ff7ab6"/>
+          <text x="282" y="142" fill="#ff7ab6" font-size="12" font-family="system-ui">хищник</text>
+        </svg>
+        <h2>Стая (Boids)</h2>
+        <p>Три правила Крейга Рейнольдса: не сталкиваться с соседями, лететь как они и держаться к ним поближе.
+          Из них сами собой получаются стаи птиц и косяки рыб, которые разбегаются от хищника и обтекают препятствия.</p>
+        <span class="go">Открыть →</span>
+      </a>
+
+      <a class="card" href="ants/index.html">
+        <svg viewBox="0 0 380 150" aria-hidden="true">
+          <path d="M70 110 C120 40 220 30 310 60" fill="none" stroke="#3ee6b0" stroke-width="6" opacity="0.25"/>
+          <path d="M70 110 C150 140 250 130 310 60" fill="none" stroke="#3ee6b0" stroke-width="2" opacity="0.12"/>
+          <path d="M70 110 C120 40 220 30 310 60" fill="none" stroke="#3ee6b0" stroke-width="1.5" stroke-dasharray="2 6"/>
+          <circle cx="70" cy="110" r="14" fill="#6b4a2a" stroke="#d8b98a" stroke-width="1.5"/>
+          <circle cx="310" cy="60" r="11" fill="#ff7ab6"/>
+          <g fill="#dcefe7">
+            <circle cx="120" cy="66" r="2.5"/><circle cx="160" cy="48" r="2.5"/><circle cx="205" cy="42" r="2.5"/>
+            <circle cx="250" cy="45" r="2.5"/><circle cx="285" cy="53" r="2.5"/><circle cx="190" cy="131" r="2.5"/>
+          </g>
+          <text x="40" y="140" fill="#d8b98a" font-size="12" font-family="system-ui">гнездо</text>
+          <text x="292" y="88" fill="#ff7ab6" font-size="12" font-family="system-ui">еда</text>
+        </svg>
+        <h2>Муравьиная колония</h2>
+        <p>Муравьи не видят карту: каждый лишь нюхает феромон перед собой и оставляет свой. Запах испаряется,
+          поэтому на короткой тропе он гуще — и колония сама находит кратчайший путь от гнезда к еде.</p>
+        <span class="go">Открыть →</span>
+      </a>
+
+      <a class="card" href="physarum/index.html">
+        <svg viewBox="0 0 380 150" aria-hidden="true">
+          <g fill="none" stroke="#f5d76e" stroke-linecap="round">
+            <path d="M40 30 C90 50 120 70 170 75 C220 80 260 60 340 30" stroke-width="2.5"/>
+            <path d="M170 75 C175 100 160 120 130 135" stroke-width="2"/>
+            <path d="M170 75 C200 95 260 110 330 125" stroke-width="1.6"/>
+            <path d="M110 64 C100 90 70 110 40 120" stroke-width="1.2"/>
+            <path d="M260 62 C270 80 300 90 340 85" stroke-width="1"/>
+            <path d="M215 96 C225 110 235 125 240 140" stroke-width="0.8"/>
+          </g>
+          <g fill="none" stroke="#f5d76e" opacity="0.25" stroke-width="5">
+            <path d="M40 30 C90 50 120 70 170 75 C220 80 260 60 340 30"/>
+            <path d="M170 75 C175 100 160 120 130 135"/>
+          </g>
+          <g fill="#ff7ab6"><circle cx="40" cy="30" r="6"/><circle cx="340" cy="30" r="6"/><circle cx="130" cy="135" r="6"/><circle cx="330" cy="125" r="6"/></g>
+        </svg>
+        <h2>Слизевик (Physarum)</h2>
+        <p>Сотни тысяч частиц: каждая трижды нюхает след впереди и поворачивает туда, где его больше. След расплывается
+          и тает — и из хаоса вырастает живая транспортная сеть, похожая на настоящий слизевик или карту метро.</p>
+        <span class="go">Открыть →</span>
+      </a>
+
+      <a class="card" href="pso/index.html">
+        <svg viewBox="0 0 380 150" aria-hidden="true">
+          <g fill="none" stroke="#3ee6b0">
+            <ellipse cx="230" cy="78" rx="150" ry="70" opacity="0.15"/>
+            <ellipse cx="230" cy="78" rx="110" ry="52" opacity="0.25"/>
+            <ellipse cx="230" cy="78" rx="72" ry="34" opacity="0.4"/>
+            <ellipse cx="230" cy="78" rx="36" ry="17" opacity="0.6"/>
+          </g>
+          <g stroke="#dcefe7" stroke-width="1.2" opacity="0.6">
+            <line x1="90" y1="40" x2="108" y2="48"/><line x1="120" y1="120" x2="136" y2="110"/>
+            <line x1="320" y1="30" x2="304" y2="40"/><line x1="330" y1="125" x2="314" y2="114"/>
+            <line x1="180" y1="20" x2="190" y2="34"/>
+          </g>
+          <g fill="#dcefe7"><circle cx="108" cy="48" r="3"/><circle cx="136" cy="110" r="3"/><circle cx="304" cy="40" r="3"/><circle cx="314" cy="114" r="3"/><circle cx="190" cy="34" r="3"/></g>
+          <path d="M230 70 v16 M222 78 h16" stroke="#ff7ab6" stroke-width="2.5"/>
+          <text x="246" y="74" fill="#ff7ab6" font-size="12" font-family="system-ui">лучшая точка роя</text>
+        </svg>
+        <h2>Рой частиц (PSO)</h2>
+        <p>Как найти самую низкую точку холмистой местности, если видишь только высоту под собой? Каждая частица помнит
+          своё лучшее место и знает лучшее место роя — и летит между ними. Видно, как рой обшаривает ловушки
+          функций Растригина и Экли и сходится к минимуму.</p>
+        <span class="go">Открыть →</span>
+      </a>
+    </div>
+
+    <p class="common">Общее у всех проектов: агенты не знают общей картины и не получают команд — только смотрят на соседей
+      или на среду рядом с собой. Умное поведение возникает из взаимодействия. Сестринский проект —
+      <a href="https://genetic.tdhster.workers.dev/">генетические алгоритмы проектируют механизмы</a>.</p>
+  </main>
+</body>
+</html>
