@@ -15,8 +15,11 @@ for (const shape of ['letter', 'house', 'square', 'arrow']) {
   check(st.fill > 0.8 && st.trulyInside === 1 && st.error < 0.01,
     `${shape}, no noise: fill ${(st.fill * 100).toFixed(0)}%, everyone really inside, position error ${st.error.toFixed(3)}`);
 }
-const h1 = run('house', 0.01), k1 = run('letter', 0.01), h2 = run('house', 0.02);
-check(h1.fill > 0.85, `house, noise 1%: fill ${(h1.fill * 100).toFixed(0)}%`);
-check(k1.fill < 0.75, `letter, noise 1%: thin legs suffer, fill ${(k1.fill * 100).toFixed(0)}%`);
-check(h2.fill < 0.6, `house, noise 2%: falls apart, fill ${(h2.fill * 100).toFixed(0)}%`);
+const h2 = run('house', 0.02, 150), k1 = run('letter', 0.01, 150), k2 = run('letter', 0.02, 150);
+check(h2.trulyInside > 0.9, `house, noise 2%: ${(h2.trulyInside * 100).toFixed(0)}% of robots inside the shape`);
+check(k1.trulyInside < 0.9 && k2.trulyInside < 0.65, `letter K bends with noise: inside ${(k1.trulyInside * 100).toFixed(0)}% at 1%, ${(k2.trulyInside * 100).toFixed(0)}% at 2%`);
+for (const count of [90, 110, 130, 150, 180]) {
+  const st = run('letter', 0, count);
+  check(st.fill > 0.9, `letter K with ${count} robots: fill ${(st.fill * 100).toFixed(0)}% (the old edge-following stalled at 55% with 110)`);
+}
 process.exit(failed ? 1 : 0);

@@ -1,7 +1,7 @@
 // Robot swarm page: drawing, sliders and the loop. The model is in swarm.js.
 
 const $ = id => document.getElementById(id);
-const params = { count: 150, shape: 'letter', noise: 0 };
+const params = { count: 110, shape: 'letter', noise: 0 };
 let swarm, running = true, speedUp = 10;
 
 const WORLD_W = 160, WORLD_H = 90;   // robot radii shown on the canvas

@@ -13,6 +13,8 @@
 const COMM = 5.5;          // communication / distance sensing range
 const EDGE_GAP = 2.3;      // center distance kept while edge-following
 const SPEED = 0.25;        // per step
+const TURN_RATE = 0.15;    // rad per step while edge-following (0.15 beat 0.2 and 0.3 over 4 shapes × 5 robot counts)
+const TURN_SIDE = 1;       // which side the group stays on (+1 / -1)
 const SEED_X = 70, SEED_Y = 50;
 
 // Shapes in seed coordinates (u to the right, v up), in robot radii. The seed must be INSIDE the shape at its
@@ -168,18 +170,19 @@ class Swarm {
     let gmin = Infinity;
     for (const b of still) gmin = Math.min(gmin, b.grad);
     a.grad = gmin + 1;
-    // Edge following: keep EDGE_GAP to the nearest stationary robot, going around the group clockwise.
+    // Edge following as on the Kilobots: the robot has a heading and always drives forward. It only knows the
+    // distance to the nearest stationary neighbor (not the direction): closer than EDGE_GAP - turn away,
+    // farther - turn toward. The group stays on the same side, and corners are handled by the turning itself
+    // (our first version steered along the tangent to the nearest robot and jittered in concave corners).
     let q = null, qd = Infinity;
     for (const b of still) { const d = Math.hypot(a.x - b.x, a.y - b.y); if (d < qd) { qd = d; q = b; } }
-    let dx = 0, dy = 0;
-    if (q) {
-      const ux = (a.x - q.x) / qd, uy = (a.y - q.y) / qd;
-      dx = -uy + 1.5 * (EDGE_GAP - qd) * ux;
-      dy = ux + 1.5 * (EDGE_GAP - qd) * uy;
-      const m = Math.hypot(dx, dy) || 1;
-      dx = dx / m * SPEED; dy = dy / m * SPEED;
+    if (a.heading === undefined) {
+      // Start: drive along the group, keeping it on the left: tangent to the nearest neighbor.
+      a.heading = q ? Math.atan2(a.y - q.y, a.x - q.x) + Math.PI / 2 * TURN_SIDE : 0;
     }
-    // Queue politely: a moving robot right ahead means wait (pushing it only wedges both in corners).
+    // The neighbor is at +90° relative to the heading (times TURN_SIDE): too close - turn the other way.
+    if (q) a.heading += (qd < EDGE_GAP ? -1 : 1) * TURN_RATE * TURN_SIDE;
+    let dx = Math.cos(a.heading) * SPEED, dy = Math.sin(a.heading) * SPEED;
     // Two robots heading around different neighbors can each see the other "ahead" and wait forever, with the
     // whole queue behind them (found: robots 50 and 60 at 110 robots). If we were waiting for each other,
     // the one with the smaller id goes first.
