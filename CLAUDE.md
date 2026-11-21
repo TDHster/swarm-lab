@@ -4,7 +4,7 @@
 Сестринский проект — `../genetic` (https://genetic.tdhster.workers.dev/): то же устройство и стиль, другой цвет.
 
 ## Архитектура
-- Проекты в подпапках (`boids/`, `ants/`, `physarum/`, `pso/`, `crowd/`, `stigmergy/`, `aco/`, `robots/`, `vicsek/`, `fireflies/`, `traffic/`, `shepherd/`) независимы: общего кода нет, у каждого свои
+- Проекты в подпапках (`boids/`, `ants/`, `physarum/`, `pso/`, `crowd/`, `stigmergy/`, `aco/`, `robots/`, `vicsek/`, `fireflies/`, `traffic/`, `shepherd/`, `quiet/`, `stringart/`, `lampshade/`, `greenhouse/`) независимы: общего кода нет, у каждого свои
   `index.html`, `style.css`, `js/`. **Главная цель — понятность для обучения.**
 - Типовое устройство: `js/rng.js` (сид-ГСЧ), `js/model.js` (агенты и правила, без DOM), `js/draw.js`, `js/app.js`
   (UI, цикл rAF, FPS); `tools/smoke.mjs` — прогон модели в Node (на сайт не попадает).
