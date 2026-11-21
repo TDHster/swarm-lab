@@ -24,9 +24,9 @@ python3 -m http.server 8766
 
 Хостинг — Cloudflare Worker `swarm-lab` со статикой (`wrangler.jsonc`, папка `site/`).
 
-- Автоматически: пуш в `main` → Cloudflare Workers Builds запускает `./make-site.sh` и `npx wrangler deploy`.
-- Вручную: `npx wrangler login` (один раз), затем `./make-site.sh && npx wrangler deploy`.
-- Проверка без выкладки: `./make-site.sh && npx wrangler deploy --dry-run`.
+- Автоматически: пуш в `main` → Cloudflare Workers Builds запускает `npx wrangler deploy` (он же собирает `site/`).
+- Вручную: `npx wrangler login` (один раз), затем `npx wrangler deploy` (сборку `site/` он запускает сам — `build.command` в `wrangler.jsonc`).
+- Проверка без выкладки: `npx wrangler deploy --dry-run`.
 
 `make-site.sh` собирает `site/` без служебных файлов (`.git`, `CLAUDE.md`, `tools/` и т. п.).
 Аналитика Cloudflare: `./make-site.sh <token>` (по умолчанию без неё).

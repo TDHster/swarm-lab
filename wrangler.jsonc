@@ -1,7 +1,9 @@
 // Cloudflare Worker "swarm-lab" (swarm-lab.tdhster.workers.dev): static files only, no server code.
-// Build site/ first (./make-site.sh), then `npx wrangler deploy`. On push to git, Workers Builds does both.
+// `npx wrangler deploy` first runs build.command (make-site.sh builds site/), then uploads site/.
+// The same command works locally and in Cloudflare Workers Builds on push to main.
 {
   "name": "swarm-lab",
   "compatibility_date": "2026-10-01",
+  "build": { "command": "./make-site.sh" },
   "assets": { "directory": "./site" }
 }

@@ -26,9 +26,10 @@
 остановить — `kill <PID>`.
 
 ## Выкладывание
-Cloudflare Worker `swarm-lab`, только статика: `make-site.sh` собирает `site/` (через `tar`: в образе Cloudflare нет
-`rsync`), `npx wrangler deploy` выкладывает. Автодеплой — Workers Builds по пушу в `main`: на 2026-11-21 сборка падала
-(лог только в дашборде; вероятно, пустой Build command — нужен `./make-site.sh`), поэтому выкладывали вручную:
-`./make-site.sh && npx wrangler deploy`. Статус сборки по коммиту: `gh api repos/TDHster/swarm-lab/commits/main/check-runs`.
+Cloudflare Worker `swarm-lab`, только статика. `npx wrangler deploy` сам запускает `build.command` из `wrangler.jsonc`
+(`./make-site.sh` собирает `site/` через `tar`: в образе Cloudflare нет `rsync`) и выкладывает `site/`.
+Автодеплой — Workers Builds по пушу в `main` (в дашборде нужна только Deploy command `npx wrangler deploy`).
+Грабли: без `build.command` Workers Builds сразу делал deploy и падал — «assets.directory … site does not exist».
+Статус сборки по коммиту: `gh api repos/TDHster/swarm-lab/commits/main/check-runs`.
 Новый проект: плитка в `index.html` (убрать класс `soon`, обернуть в `<a href>`), строка в `README.md`.
 После деплоя: `curl -s -o /dev/null -w "%{http_code}" https://swarm-lab.tdhster.workers.dev/<проект>/`.
