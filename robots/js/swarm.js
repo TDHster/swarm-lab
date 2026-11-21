@@ -180,9 +180,13 @@ class Swarm {
       dx = dx / m * SPEED; dy = dy / m * SPEED;
     }
     // Queue politely: a moving robot right ahead means wait (pushing it only wedges both in corners).
-    if (nb.some(b => b.state === 'move' && Math.hypot(b.x - a.x, b.y - a.y) < EDGE_GAP && (b.x - a.x) * dx + (b.y - a.y) * dy > 0)) {
-      return;
-    }
+    // Two robots heading around different neighbors can each see the other "ahead" and wait forever, with the
+    // whole queue behind them (found: robots 50 and 60 at 110 robots). If we were waiting for each other,
+    // the one with the smaller id goes first.
+    const ahead = nb.find(b => b.state === 'move' && Math.hypot(b.x - a.x, b.y - a.y) < EDGE_GAP
+      && (b.x - a.x) * dx + (b.y - a.y) * dy > 0 && !(b.waitsFor === a.id && a.id < b.id));
+    if (ahead) { a.waitsFor = ahead.id; return; }
+    a.waitsFor = -1;
     // Stuck in a notch for a long time: back out, away from the neighbors.
     if (this.steps - (a.progressAt ?? this.steps) > 300 && still.length) {
       const cx = still.reduce((t, b) => t + b.x, 0) / still.length, cy = still.reduce((t, b) => t + b.y, 0) / still.length;
