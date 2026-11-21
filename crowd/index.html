@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Толпа и эвакуация</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%2308130f%27/%3E%3Cpath d=%27M26 16 L8 8 L12 16 L8 24 Z%27 fill=%27%233ee6b0%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <a class="home" href="../index.html">← Роевой интеллект</a>
+    <h1>Толпа и эвакуация</h1>
+    <p>Человек в толпе — тоже агент с простыми правилами: <b class="c-goal">хочу туда</b> со своей скоростью,
+      <b class="c-soc">держу дистанцию</b> от людей и стен, а если прижали — <b class="c-body">толкаюсь и трусь</b> телом.
+      Это <b>модель социальных сил</b> Дирка Хелбинга (2000), по которой проверяют проекты стадионов, вокзалов и выходов.
+      Всё в метрах и секундах, и модель сверена с реальностью: через метр двери спокойная толпа выходит со скоростью
+      <b>1,7 человека в секунду</b> (по реальным измерениям 1,3–1,9). Попробуй готовые сценарии или нарисуй свой план.</p>
+  </header>
+
+  <section class="controls">
+    <div class="buttons" id="scenarios"><span class="label">Сценарий:</span></div>
+    <div class="buttons">
+      <button id="btn-run" class="primary">⏸ Пауза</button>
+      <button id="btn-reset" title="Люди заново по зонам старта; план (и все правки) остаётся">↺ Сброс</button>
+      <button id="btn-scenario" title="Вернуть план сценария без правок">🗺 План заново</button>
+      <label class="inline" title="Seed: одинаковый seed — одинаковая расстановка">seed <input id="seed" type="number" value="1"></label>
+    </div>
+    <div class="groups">
+      <fieldset id="group-people"><legend>Люди</legend></fieldset>
+      <fieldset id="group-scene">
+        <legend>Сценарий</legend>
+        <label class="slider" id="column-row" title="Круглая колонна диаметром 80 см чуть сбоку перед дверью">
+          <span>Колонна перед дверью</span><input id="column" type="checkbox"></label>
+      </fieldset>
+      <fieldset id="group-run">
+        <legend>Вид и конструктор</legend>
+        <label class="slider"><span>Цвет людей</span>
+          <select id="color-mode">
+            <option value="press" selected>по сжатию</option>
+            <option value="speed">по скорости</option>
+            <option value="target">по цели</option>
+          </select></label>
+        <label class="slider"><span>Тепловая карта</span>
+          <select id="heat">
+            <option value="none">нет</option>
+            <option value="density" selected>плотность сейчас</option>
+            <option value="max">плотность: максимум за запуск</option>
+            <option value="pressure">давление толпы</option>
+          </select></label>
+        <label class="slider" title="Рисуй мышью по полю. Сетка 25 см."><span>Инструмент</span>
+          <select id="tool">
+            <option value="none" selected>— смотреть —</option>
+            <option value="wall">стена (протяни)</option>
+            <option value="column">колонна (клик)</option>
+            <option value="gap">проём в стене (протяни вдоль)</option>
+            <option value="exit">выход (прямоугольник)</option>
+            <option value="people">люди (прямоугольник)</option>
+            <option value="erase">ластик (клик: стена целиком, колонна, выход, зона)</option>
+          </select></label>
+        <label class="slider" title="Трение тел при сжатии — из-за него возникают «арки» у двери"><span>Трение тел</span><input id="friction" type="checkbox" checked></label>
+      </fieldset>
+    </div>
+  </section>
+
+  <main>
+    <section class="panel field-panel">
+      <div class="stats" id="stats"></div>
+      <div class="note" id="plan-note"></div>
+      <canvas id="field"></canvas>
+      <div class="legend">
+        <span style="--c:#cfe9df">человек (реальный размер)</span>
+        <span style="--c:#f5c842">сжат</span>
+        <span style="--c:#e0402a">сжат сильнее 1600 Н/м</span>
+        <span style="--c:#3ee6b0">выход</span>
+        <span style="--c:#5f8f80">колонна</span>
+        <span class="muted">Чёрная чёрточка — куда человек хочет идти. Тепловая карта: жёлтое → красное — 6 чел/м² и больше.</span>
+      </div>
+    </section>
+
+    <section class="panel side">
+      <h2>График</h2>
+      <canvas id="chart"></canvas>
+      <h2>Что попробовать</h2>
+      <div data-hint="hall"><ul class="try">
+          <li><b>Спешка замедляет.</b> Двигай «желаемую скорость»: 1,3 м/с — выходят за ~117 с, 2 м/с — за ~92 с,
+            а дальше быстрее не становится (3–4 м/с — 94–96 с). Зато растёт давка: сжатых сильнее 1600 Н/м — 1 → 16 → 100 → 139 из 200.
+            При 5 м/с у двери встаёт «арка», и иногда толпа застревает намертво (1 запуск из 4).</li>
+          <li><b>Колонна перед дверью.</b> Время почти не меняет, а пиковое сжатие обычно снижает на 15–20%
+            (но не всегда: при 2 м/с вышло на 10% выше). В панике (5 м/с) с колонной ни один из 4 запусков не застрял.
+            Выводы по 4 запускам — осторожные; и в опытах с людьми эффект колонны спорный.</li>
+          <li><b>Трение тел выкл.</b> при 5 м/с: толпа «течёт как жидкость» и выходит за ~33 с вместо ~100. Значит, затор
+            у двери создаёт именно трение зажатых тел. (Сам поток без трения — 6 чел/с на метр — нереален: у живых людей трение есть всегда.)</li>
+          <li><b>Ширина двери 1,2 → 2,4 м:</b> время ~116 → 45 с — быстрее, чем вдвое: широкая дверь пропускает больше людей
+            на каждый метр (1,7 → 2,2 чел/с·м). На <b>0,8 м</b> 3–5 человек застревают у косяков насовсем — в жизни они бы
+            отступили и пропустили друг друга, модель так не умеет.</li>
+          <li><b>Тепловая карта «максимум за запуск»</b> показывает, где было опасно тесно: обычно полукругом у двери.</li>
+        </ul></div>
+      <div data-hint="two" hidden><ul class="try">
+          <li><b>Знают про запасной: 100% → 50% → 0%.</b> Эвакуация ~97 → 134 → 162 с: незнающие стоят в очереди
+            к главному выходу мимо свободного запасного. Таблички и объявление о втором выходе ускоряют эвакуацию почти вдвое.</li>
+          <li><b>Стадность 0,6</b> при 50% знающих: 134 → 148 с. Знающие идут за толпой, и запасным пользуются ещё меньше
+            (около 45 человек вместо 68).</li>
+          <li><b>Цвет «по цели»:</b> белые знают оба выхода и идут к ближнему, бирюзовые знают только главный.</li>
+        </ul></div>
+      <div data-hint="corridor" hidden><ul class="try">
+          <li><b>Полосы.</b> Встречные потоки сами разбиваются на полосы — никто не договаривался «держаться правее».
+            При 40 людях порядок полос растёт с ~0,5 до ~1, а скорость почти не падает (1,3 м/с). Цвет «по цели».</li>
+          <li><b>Плотнее.</b> При 60 людях полосы складываются не всегда, при 80 и больше — затор.
+            Это <b>ограничение модели</b>: живые люди держат встречный поток и вдвое плотнее, а силовая модель плохо передаёт,
+            как люди уступают дорогу.</li>
+          <li><b>Нервозность 0 → 0,5.</b> Чем больше случайности, тем хуже держатся полосы.</li>
+        </ul></div>
+      <div data-hint="crossing" hidden><ul class="try">
+          <li><b>Плотность.</b> Две толпы пересекаются под прямым углом. При 150 людях почти не мешают друг другу
+            (≈1,27 м/с), при 450 — уже ≈0,95 м/с.</li>
+          <li><b>Узор.</b> Теория предсказывает, что пересекающиеся потоки собираются в диагональные полосы.
+            Посмотри с цветом «по цели» — видно ли это здесь? (Мы это численно не проверяли.)</li>
+        </ul></div>
+    </section>
+  </main>
+
+  <section class="panel runs">
+    <h2>Сравнение запусков <button id="btn-clear-runs" class="small">очистить</button></h2>
+    <p class="note">Каждая законченная эвакуация попадает сюда — меняй дверь, колонну, скорость или план и сравнивай.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>сценарий</th><th>условия</th><th>скорость, м/с</th><th>стадность</th><th>время</th>
+          <th>вышли по выходам</th><th>макс. плотность, чел/м²</th><th>сжатых &gt;1600 Н/м</th></tr></thead>
+        <tbody id="runs"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel explain">
+    <h2>Как это устроено</h2>
+    <div class="explain-grid">
+      <svg class="scheme" viewBox="0 0 560 280" role="img" aria-label="Схема: силы, действующие на человека, и карта расстояний до выхода">
+        <defs>
+          <marker id="a-goal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#3ee6b0"/></marker>
+          <marker id="a-soc" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#ff7ab6"/></marker>
+          <marker id="a-wall" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#5bb8ff"/></marker>
+          <marker id="a-body" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#e0402a"/></marker>
+        </defs>
+        <!-- forces on one person -->
+        <line x1="20" y1="230" x2="250" y2="230" stroke="#c9d8d1" stroke-width="5"/>
+        <text x="20" y="252" font-size="11" fill="#86a89b">стена</text>
+        <circle cx="120" cy="150" r="22" fill="#cfe9df"/>
+        <circle cx="160" cy="120" r="20" fill="#5a6f68"/>
+        <circle cx="78" cy="118" r="21" fill="#5a6f68"/>
+        <circle cx="142" cy="170" r="19" fill="none" stroke="#e0402a" stroke-dasharray="3 3"/>
+        <line x1="120" y1="150" x2="200" y2="80" stroke="#3ee6b0" stroke-width="3.5" marker-end="url(#a-goal)"/>
+        <line x1="120" y1="150" x2="98" y2="172" stroke="#ff7ab6" stroke-width="3" marker-end="url(#a-soc)"/>
+        <line x1="120" y1="150" x2="120" y2="122" stroke="#5bb8ff" stroke-width="3" marker-end="url(#a-wall)"/>
+        <line x1="120" y1="150" x2="100" y2="140" stroke="#e0402a" stroke-width="3" marker-end="url(#a-body)"/>
+        <g font-size="12">
+          <text x="182" y="72" fill="#3ee6b0">хочу к выходу (v0, τ)</text>
+          <text x="20" y="196" fill="#ff7ab6">держу дистанцию</text>
+          <text x="126" y="146" fill="#5bb8ff">от стены</text>
+          <text x="20" y="100" fill="#e0402a">касание: толчок</text>
+          <text x="20" y="114" fill="#e0402a">и трение тел</text>
+        </g>
+        <!-- navigation map -->
+        <rect x="300" y="30" width="220" height="200" fill="none" stroke="#c9d8d1" stroke-width="3"/>
+        <rect x="514" y="112" width="12" height="36" fill="#040a08"/>
+        <rect x="526" y="104" width="22" height="52" fill="rgba(62,230,176,0.25)" stroke="#3ee6b0"/>
+        <g fill="none" stroke="#17707a">
+          <path d="M520 75 A55 55 0 0 0 520 185"/><path d="M520 40 A90 90 0 0 0 520 220"/>
+          <path d="M470 30 A125 125 0 0 0 470 230" opacity="0.8"/><path d="M420 30 A160 160 0 0 0 420 230" opacity="0.6"/>
+          <path d="M370 30 A195 195 0 0 0 370 230" opacity="0.5"/>
+        </g>
+        <g stroke="#3ee6b0" stroke-width="1.6" marker-end="url(#a-goal)">
+          <line x1="330" y1="60" x2="352" y2="70"/><line x1="330" y1="200" x2="352" y2="190"/>
+          <line x1="400" y1="130" x2="424" y2="130"/><line x1="460" y1="70" x2="478" y2="86"/><line x1="460" y1="190" x2="478" y2="174"/>
+        </g>
+        <text x="300" y="252" font-size="11" fill="#86a89b">карта расстояний до выхода: идти «под горку»</text>
+      </svg>
+      <ol>
+        <li><b class="c-goal">Желание.</b> Человек хочет идти со <i>скоростью</i> v0 в направлении e и разгоняется к ней примерно
+          за полсекунды: сила m·(v0·e − v)/τ. Направление берётся из карты расстояний до выхода (сетка 10 см, алгоритм
+          Дейкстры): человек идёт «под горку» и сам огибает стены и колонны.</li>
+        <li><b class="c-soc">Дистанция.</b> Люди и стены отталкивают с силой A·e^((r−d)/B), где d — расстояние, r — сумма радиусов.
+          Плюс <i>предвидение</i>: сила смотрит, где сосед окажется через полсекунды, и тех, кто сзади, человек замечает слабее
+          (Йоханссон, Хелбинг, Шукла, 2007) — так встречные обходят друг друга.</li>
+        <li><b class="c-body">Тело.</b> Если люди касаются, работает настоящая физика: упругость тела k и трение κ.
+          Трение и создаёт «арки» у узкой двери: зажатые люди упираются друг в друга, как зёрна в воронке.
+          <i>Сжатие</i> — сумма сил давления на метр окружности тела; больше 1600 Н/м Хелбинг считал травмой.</li>
+        <li><b>Стадность и нервозность.</b> При стадности человек смешивает своё направление с направлениями соседей.
+          Нервозность — небольшое случайное отклонение, без него толпа ведёт себя как кристалл.</li>
+        <li><b>Давление толпы</b> на тепловой карте = плотность × разброс скоростей вокруг средней (Хелбинг, Йоханссон, 2007).
+          Его рост — признак, что толпу «болтает»: так начиналась давка на хадже в 2006 году.</li>
+      </ol>
+    </div>
+    <p class="note"><b>Чего модель не умеет.</b> Встречный поток замирает уже при плотности выше ~0,6 чел/м², а живые
+      люди проходят и при 1–2 чел/м²: силовая модель плохо передаёт, как люди уступают дорогу. Это проверено и записано
+      в README вместе с неудачными попытками починить. Модель хороша для сравнения вариантов плана, а не для точных секунд.
+      Код: <code>js/plan.js</code> — планы и навигация, <code>js/model.js</code> — силы, <code>js/app.js</code> — интерфейс.</p>
+  </section>
+
+  <script src="js/rng.js"></script>
+  <script src="js/plan.js"></script>
+  <script src="js/model.js"></script>
+  <script src="js/draw.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
