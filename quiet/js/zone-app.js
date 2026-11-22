@@ -1,4 +1,4 @@
-// Quiet zone page: the room with moving waves (or the dB map), charts, sliders and the loop. The model is in zone.js.
+// Quiet zone page: the room with moving waves (or the dB map), charts, sliders, sound and the loop. The model is in zone.js.
 
 const SLIDERS = [
   { group: 'spk', key: 'speakers', label: 'Динамиков', min: 1, max: 12, step: 1, value: 6, rebuild: 'layout' },
@@ -12,7 +12,7 @@ const $ = id => document.getElementById(id);
 const params = { listen: 'own', src: { x: 4.3, y: 3.5 } };
 for (const s of SLIDERS) params[s.key] = s.value;
 
-let zone, running = true, field0 = null, total = null;
+let zone, running = true, field0 = null, total = null, ear = null;   // ear: where we listen (null - at the pillow)
 const zoneLog = [];
 
 function start() {
@@ -96,6 +96,12 @@ function draw(now) {
   ctx.fillText('гул', x0 + params.src.x * s + 12 * dpr, y0 + params.src.y * s + 4 * dpr);
   ctx.fillText('кровать', x0 + (HEAD.x - 0.75) * s, y0 + 2.1 * s);
   ctx.fillText('комната 5 × 4 м', x0 + 6 * dpr, y0 + ROOM_H * s - 6 * dpr);
+  if (hum && ear) {
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.5 * dpr;
+    ctx.beginPath(); ctx.arc(x0 + ear.x * s, y0 + ear.y * s, 7 * dpr, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillText('ухо', x0 + ear.x * s + 10 * dpr, y0 + ear.y * s - 8 * dpr);
+  }
 }
 
 function drawCharts() {
@@ -145,14 +151,37 @@ for (const s of SLIDERS) {
 $('listen').onchange = e => { params.listen = e.target.value; };
 $('btn-run').onclick = () => { running = !running; $('btn-run').textContent = running ? '⏸ Пауза' : '▶ Старт'; };
 $('btn-reset').onclick = () => { zone.q = zone.spk.map(() => [0, 0]); zoneLog.length = 0; afterChange(); };
-field.addEventListener('pointerdown', e => {
+const toRoom = e => {
   const r = field.getBoundingClientRect(), dpr = field.width / r.width, { s, x0, y0 } = geom();
-  const x = ((e.clientX - r.left) * dpr - x0) / s, y = ((e.clientY - r.top) * dpr - y0) / s;
+  return { x: ((e.clientX - r.left) * dpr - x0) / s, y: ((e.clientY - r.top) * dpr - y0) / s };
+};
+field.addEventListener('pointerdown', e => {
+  const { x, y } = toRoom(e);
   if (x < 0.1 || x > ROOM_W - 0.1 || y < 0.1 || y > ROOM_H - 0.1) return;
   params.src = { x, y };
   zone.rebuild();
   afterChange();
 });
+
+// The ear follows the mouse over the room; off the room (and on phones) it is back at the pillow.
+field.addEventListener('pointermove', e => {
+  if (e.pointerType !== 'mouse') return;
+  const p = toRoom(e);
+  ear = p.x > 0 && p.x < ROOM_W && p.y > 0 && p.y < ROOM_H ? p : null;
+});
+field.addEventListener('pointerleave', () => { ear = null; });
+
+// ---- sound: the hum at the ear, as loud as the model says ------------------------------------
+let hum = null;
+soundToggle($('btn-sound'), audio => { hum = toneVoice(audio, params.f); });
+function updateSound() {
+  if (!hum) return;
+  const p = ear || HEAD, c = Math.min(zone.ny - 1, Math.floor(p.y / GRID)) * zone.nx + Math.min(zone.nx - 1, Math.floor(p.x / GRID));
+  const hc = Math.floor(HEAD.y / GRID) * zone.nx + Math.floor(HEAD.x / GRID);
+  const ref = Math.hypot(field0[2 * hc], field0[2 * hc + 1]);   // gain 0.3 = the hum alone at the pillow
+  const amp = $('bypass').checked ? Math.hypot(field0[2 * c], field0[2 * c + 1]) : Math.hypot(total[2 * c], total[2 * c + 1]);
+  hum.set(Number.isFinite(amp) ? 0.3 * Math.min(3, amp / ref) : 0.9, params.f);
+}
 
 // ---- loop ------------------------------------------------------------------------------------
 let lastStats = 0;
@@ -164,6 +193,7 @@ function frame(now) {
     zoneLog.push(Number.isFinite(rep.zone) ? rep.zone : 99);
     if (zoneLog.length > 2000) zoneLog.shift();
   }
+  updateSound();
   draw(now);
   drawCharts();
   if (now - lastStats > 300) {

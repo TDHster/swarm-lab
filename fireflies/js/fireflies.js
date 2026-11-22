@@ -75,6 +75,7 @@ class Fireflies {
     }
     for (const i of queue) ph[i] = 0;
     this.flashesNow = queue.length;
+    this.fired = queue;   // who flashed in this step (the page plays a chirp for each)
     return queue.length;
   }
 

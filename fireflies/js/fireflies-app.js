@@ -121,15 +121,23 @@ field.addEventListener('pointerdown', e => { shake = toField(e); shakeAt = ff.t;
 field.addEventListener('pointermove', e => { mouse = toField(e); });
 field.addEventListener('pointerleave', () => { mouse = null; });
 
+// ---- sound: every flash is a short chirp (real fireflies are silent - think of crickets) -------
+let audio = null;
+soundToggle($('btn-sound'), a => { audio = a; });
+// Each firefly has its own pitch and sits left or right in the stereo field, as it sits in the forest.
+const pitchOf = i => 2000 * Math.pow(2, (i * 0.618034 % 1) * 0.7);
+
 // ---- loop ------------------------------------------------------------------------------------
 let acc = 0, last = performance.now(), lastStats = 0, binT = 0, binFlashes = 0;
 function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
+  const hits = [];
   if (running) {
     acc += dt * params.speed;
-    while (acc >= DT) {
+    for (let j = 0; acc >= DT; j++) {
       binFlashes += ff.step(DT);
+      if (soundOn(audio)) for (const i of ff.fired) hits.push({ at: 0.03 + j * DT / params.speed, i });
       acc -= DT;
       binT += DT;
       if (binT >= 0.05 - 1e-9) {
@@ -139,6 +147,10 @@ function frame(now) {
         binT = 0; binFlashes = 0;
       }
     }
+  }
+  if (soundOn(audio)) {
+    const base = 0.8 / Math.sqrt(ff.n);   // all flashing at once must not be deafening
+    playHits(hits, (h, g) => chirp(audio, audio.currentTime + h.at, pitchOf(h.i), ff.x[h.i] / FIELD_W * 1.6 - 0.8, base * g));
   }
   draw();
   drawSeries(chartF, fctx, flashLog, ff.n, '#f5f08a', 'вспышек за 0,05 с, до N', true);

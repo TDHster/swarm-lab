@@ -32,33 +32,20 @@ const F_LO = BLADES * RPM_MIN / 60, F_HI = BLADES * RPM_MAX / 60;
 const colorOf = (f, l = 60) => `hsl(${Math.round((f - F_LO) / (F_HI - F_LO) * 260)} 75% ${l}%)`;
 const pairs = () => { const out = []; for (let i = 0; i < rack.n; i++) for (let j = i + 1; j < rack.n; j++) out.push([i, j]); return out; };
 
-// ---- sound ---------------------------------------------------------------------------------
+// ---- sound: every fan's blade tone, plus the air ----------------------------------------------
 let audio = null, voices = [];
 function buildSound() {
   if (!audio) return;
-  for (const v of voices) v.osc.stop();
-  voices = [];
-  for (let i = 0; i < rack.n; i++) {
-    const osc = audio.createOscillator(), g = audio.createGain();
-    osc.frequency.value = rack.freq(i);
-    g.gain.value = 0.5 / rack.n;
-    osc.connect(g).connect(audio.master);
-    osc.start();
-    voices.push({ osc, g });
-  }
+  for (const v of voices) v.stop();
+  // Blade-pass tone with a couple of overtones: closer to a real fan than a pure sine, and the beating stays.
+  voices = Array.from({ length: rack.n }, (_, i) => toneVoice(audio, rack.freq(i), [1, 0.35, 0.15]));
+  voices.forEach(v => v.set(0.6 / rack.n));
 }
-$('btn-sound').onclick = async () => {
-  if (!audio) {
-    audio = new AudioContext();
-    audio.master = audio.createGain();
-    audio.master.gain.value = 0.25;
-    audio.master.connect(audio.destination);
-    buildSound();
-    await audio.resume();   // some browsers start the context suspended
-    $('btn-sound').textContent = '🔇 Тише';
-  } else if (audio.state === 'running') { await audio.suspend(); $('btn-sound').textContent = '🔊 Слушать'; }
-  else { await audio.resume(); $('btn-sound').textContent = '🔇 Тише'; }
-};
+soundToggle($('btn-sound'), a => {
+  audio = a;
+  noiseVoice(audio, 900, 0.7, 0.05);   // the rush of air: steady, it does not beat
+  buildSound();
+});
 
 // ---- drawing ---------------------------------------------------------------------------------
 const field = $('field'), ctx = field.getContext('2d');

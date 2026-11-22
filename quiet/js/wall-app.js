@@ -1,4 +1,4 @@
-// Resonator wall page: the wall seen from the front, the tone levels, sliders, CSV export and the loop.
+// Resonator wall page: the wall seen from the front, the tone levels, sliders, sound, CSV export and the loop.
 // The model is in wall.js.
 
 const SLIDERS = [
@@ -175,6 +175,16 @@ field.addEventListener('pointermove', e => {
 });
 field.addEventListener('pointerleave', () => { hover = -1; });
 
+// ---- sound: the three hums, each as loud as it is in the room now ---------------------------
+let hums = null;
+soundToggle($('btn-sound'), audio => { hums = SOURCES.map(src => toneVoice(audio, src.f)); });
+function updateSound() {
+  if (!hums) return;
+  const bypass = $('bypass').checked;
+  // Sound pressure goes as the square root of the energy.
+  SOURCES.forEach((src, k) => hums[k].set(params.on[k] ? 0.4 * Math.sqrt(bypass ? src.P : wall.E[k]) : 0));
+}
+
 // ---- loop ------------------------------------------------------------------------------------
 let acc = 0, last = performance.now(), lastStats = 0;
 function frame(now) {
@@ -184,6 +194,7 @@ function frame(now) {
     acc += dt * params.speed;
     for (; acc >= 1; acc--) { wall.step(); dbLog.push(wall.levelDb()); }
   }
+  updateSound();
   draw(now);
   drawSpectrum();
   drawDb();

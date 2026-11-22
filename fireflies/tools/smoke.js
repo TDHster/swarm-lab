@@ -25,8 +25,9 @@ const runs = (over) => SEEDS.map(s => fly(over, s));
 const fmtT = rs => rs.map(x => (x.tSync === Infinity ? '—' : x.tSync.toFixed(0) + 's')).join(' ');
 const fmtR = rs => rs.map(x => x.r.toFixed(2)).join(' ');
 
-let rs = runs({});
-check(rs.every(x => x.tSync > 10 && x.tSync < 40 && x.r > 0.95), `fireflies default: sync after ${fmtT(rs)}, r ${fmtR(rs)}`);
+// The default is what visitors see first, so it gets more seeds: the sync time varies a lot.
+let rs = [1, 2, 3, 4, 5, 6, 7, 8].map(s => fly({}, s));
+check(rs.every(x => x.tSync > 15 && x.tSync < 60 && x.r > 0.95), `fireflies default: sync after ${fmtT(rs)}, r ${fmtR(rs)}`);
 rs = runs({ eps: 0 });
 check(rs.every(x => x.r < 0.1), `eps 0: never (r ${fmtR(rs)})`);
 rs = runs({ count: 150 });

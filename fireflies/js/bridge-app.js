@@ -1,4 +1,4 @@
-// Millennium Bridge page: the deck from above, charts, sliders, the Arup-style ramp and the loop.
+// Millennium Bridge page: the deck from above, charts, sliders, the Arup-style ramp, sound and the loop.
 // The model is in bridge.js.
 
 const SLIDERS = [
@@ -154,16 +154,42 @@ $('btn-ramp').onclick = () => {
   setRamp(true);
 };
 
+// ---- sound: footsteps, and the deck creaking as it swings -------------------------------------
+// One sway (θ from 0 to 2π) is two steps, so a walker steps each time θ passes a multiple of π.
+let audio = null, creak = null, stepIdx = [];
+soundToggle($('btn-sound'), a => {
+  audio = a;
+  const osc = audio.createOscillator(), lp = audio.createBiquadFilter(), g = audio.createGain();
+  osc.type = 'sawtooth';
+  osc.frequency.value = 70;
+  lp.type = 'lowpass';
+  lp.frequency.value = 500;
+  g.gain.value = 0;
+  osc.connect(lp).connect(g).connect(audio.master);
+  osc.start();
+  creak = g;
+});
+function collectSteps(hits, at) {
+  for (let i = 0; i < br.theta.length; i++) {
+    const k = Math.floor(br.theta[i] / Math.PI);
+    if (stepIdx[i] !== undefined && k !== stepIdx[i]) hits.push({ at, i, left: k % 2 === 0 });
+    stepIdx[i] = k;
+  }
+  stepIdx.length = br.theta.length;
+}
+
 // ---- loop ------------------------------------------------------------------------------------
 let acc = 0, last = performance.now(), lastStats = 0, sampleT = 0;
 function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
+  const hits = [];
   if (running) {
     acc += dt * params.speed;
     const t0 = performance.now();
-    while (acc >= DT && performance.now() - t0 < 25) {
+    for (let j = 0; acc >= DT && performance.now() - t0 < 25; j++) {
       br.step(DT);
+      if (soundOn(audio)) collectSteps(hits, 0.03 + j * DT / params.speed);
       acc -= DT;
       if (ramp && br.t - rampAt >= 20) {
         rampAt = br.t;
@@ -179,6 +205,14 @@ function frame(now) {
     }
     if (acc > 1) acc = 0;   // too slow for this speed: drop instead of piling up
   }
+  if (soundOn(audio)) {
+    const n = Math.max(1, br.theta.length);
+    playHits(hits, (h, g) => thud(audio, audio.currentTime + h.at, h.left ? -0.3 : 0.3, 1.2 / Math.sqrt(n) * g));
+    // The creak swells while the deck moves fastest; ±5 cm of sway is full volume. Squared and kept quiet:
+    // a steady creak drowns the rhythm of the steps, which is what we want to hear.
+    const speed = Math.min(1, Math.abs(br.V) / (0.05 * BRIDGE.OMEGA));
+    creak.gain.setTargetAtTime(running ? 0.12 * speed * speed : 0, audio.currentTime, 0.03);
+  } else stepIdx = [];   // sound off: forget, so that turning it on does not play a burst of stale steps
   draw();
   const aMax = Math.max(3, ...aLog.slice(-600));
   drawChart(chartA, actx, [[aLog, aMax, '#3ee6b0']], `амплитуда, 0–${aMax.toFixed(0)} см (последние 5 мин)`);
