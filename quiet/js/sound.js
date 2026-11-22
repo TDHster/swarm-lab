@@ -2,6 +2,7 @@
 // so the audio context is created on the first press of the button.
 
 // Turns `btn` into a sound on/off switch. `setup(audio)` builds the voices once; they go into audio.master.
+// Returns a function that tells whether the sound is playing now.
 function soundToggle(btn, setup) {
   let audio = null;
   btn.onclick = async () => {
@@ -16,6 +17,7 @@ function soundToggle(btn, setup) {
     else await audio.resume();
     btn.textContent = audio.state === 'running' ? '🔇 Тише' : '🔊 Слушать';
   };
+  return () => audio !== null && audio.state === 'running';
 }
 
 // A steady tone with overtones (amplitudes of harmonics 1, 2, 3, ...). Laptop speakers barely play

@@ -155,9 +155,18 @@ field.addEventListener('click', e => {
   setupMap();
 });
 
+// ---- pause while off screen ------------------------------------------------------------------
+// No canvas in view (the visitor scrolled to the text) - nobody watches, so skip the work and keep the laptop cool.
+const onScreen = new Set();
+{
+  const io = new IntersectionObserver(es => { for (const e of es) (e.isIntersecting ? onScreen.add(e.target) : onScreen.delete(e.target)); });
+  for (const c of document.querySelectorAll('canvas')) io.observe(c);
+}
+
 // ---- loop ------------------------------------------------------------------------------------
 let acc = 0, last = performance.now(), lastTable = 0;
 function frame(now) {
+  if (!onScreen.size) { last = now; requestAnimationFrame(frame); return; }
   const dt = Math.min(200, now - last);
   last = now;
   if (running) {

@@ -260,8 +260,17 @@ function drawChart() {
   }
 }
 
+// ---- pause while off screen ------------------------------------------------------------------
+// No canvas in view (the visitor scrolled to the text) - nobody watches, so skip the work and keep the laptop cool.
+const onScreen = new Set();
+{
+  const io = new IntersectionObserver(es => { for (const e of es) (e.isIntersecting ? onScreen.add(e.target) : onScreen.delete(e.target)); });
+  for (const c of document.querySelectorAll('canvas')) io.observe(c);
+}
+
 // ---- loop ------------------------------------------------------------------------------------
 function frame() {
+  if (!onScreen.size) { requestAnimationFrame(frame); return; }
   if (running) {
     const t0 = performance.now();
     for (let k = 0; k < STEPS_PER_FRAME * params.speedUp; k++) {

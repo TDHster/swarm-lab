@@ -41,7 +41,7 @@ function buildSound() {
   voices = Array.from({ length: rack.n }, (_, i) => toneVoice(audio, rack.freq(i), [1, 0.35, 0.15]));
   voices.forEach(v => v.set(0.6 / rack.n));
 }
-soundToggle($('btn-sound'), a => {
+const soundIsOn = soundToggle($('btn-sound'), a => {
   audio = a;
   noiseVoice(audio, 900, 0.7, 0.05);   // the rush of air: steady, it does not beat
   buildSound();
@@ -174,9 +174,18 @@ for (const b of document.querySelectorAll('#mode button')) {
 $('btn-run').onclick = () => { running = !running; $('btn-run').textContent = running ? '⏸ Пауза' : '▶ Старт'; };
 $('btn-swap').onclick = () => rack.replace(Math.floor(Math.random() * rack.n));
 
+// ---- pause while off screen ------------------------------------------------------------------
+// No canvas in view (the visitor scrolled to the text) - nobody watches, so skip the work and keep the laptop cool.
+const onScreen = new Set();
+{
+  const io = new IntersectionObserver(es => { for (const e of es) (e.isIntersecting ? onScreen.add(e.target) : onScreen.delete(e.target)); });
+  for (const c of document.querySelectorAll('canvas')) io.observe(c);
+}
+
 // ---- loop ------------------------------------------------------------------------------------
 let acc = 0, last = performance.now(), lastStats = 0;
 function frame(now) {
+  if (!onScreen.size && !soundIsOn()) { last = now; requestAnimationFrame(frame); return; }   // still listening
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
   if (running) {

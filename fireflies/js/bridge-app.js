@@ -178,9 +178,18 @@ function collectSteps(hits, at) {
   stepIdx.length = br.theta.length;
 }
 
+// ---- pause while off screen ------------------------------------------------------------------
+// No canvas in view (the visitor scrolled to the text) - nobody watches, so skip the work and keep the laptop cool.
+const onScreen = new Set();
+{
+  const io = new IntersectionObserver(es => { for (const e of es) (e.isIntersecting ? onScreen.add(e.target) : onScreen.delete(e.target)); });
+  for (const c of document.querySelectorAll('canvas')) io.observe(c);
+}
+
 // ---- loop ------------------------------------------------------------------------------------
 let acc = 0, last = performance.now(), lastStats = 0, sampleT = 0;
 function frame(now) {
+  if (!onScreen.size && !soundOn(audio)) { last = now; requestAnimationFrame(frame); return; }   // still listening
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
   const hits = [];

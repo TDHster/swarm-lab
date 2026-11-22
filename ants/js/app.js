@@ -135,6 +135,14 @@ for (const m of MAPS) {
   $('maps').appendChild(b);
 }
 
+// ---- pause while off screen ------------------------------------------------------------------
+// No canvas in view (the visitor scrolled to the text) - nobody watches, so skip the work and keep the laptop cool.
+const onScreen = new Set();
+{
+  const io = new IntersectionObserver(es => { for (const e of es) (e.isIntersecting ? onScreen.add(e.target) : onScreen.delete(e.target)); });
+  for (const c of document.querySelectorAll('canvas')) io.observe(c);
+}
+
 // ---- loop -------------------------------------------------------------------------------------
 function simulate(steps) {
   for (let k = 0; k < steps; k++) {
@@ -149,6 +157,7 @@ function simulate(steps) {
 
 let last = performance.now(), acc = 0, fpsFrames = 0, fpsTime = last, fps = 0;
 function frame(now) {
+  if (!onScreen.size) { last = now; fpsTime = now; fpsFrames = 0; requestAnimationFrame(frame); return; }
   const dt = Math.min(100, now - last);
   last = now;
   if (running) {

@@ -130,9 +130,18 @@ for (const [key, p] of Object.entries(PALETTES)) {
   $('palette').appendChild(o);
 }
 
+// ---- pause while off screen ------------------------------------------------------------------
+// No canvas in view (the visitor scrolled to the text) - nobody watches, so skip the work and keep the laptop cool.
+const onScreen = new Set();
+{
+  const io = new IntersectionObserver(es => { for (const e of es) (e.isIntersecting ? onScreen.add(e.target) : onScreen.delete(e.target)); });
+  for (const c of document.querySelectorAll('canvas')) io.observe(c);
+}
+
 // ---- loop -------------------------------------------------------------------------------------
 let fpsFrames = 0, fpsTime = performance.now(), stepMs = 0;
 function frame(now) {
+  if (!onScreen.size) { fpsTime = now; fpsFrames = 0; requestAnimationFrame(frame); return; }
   if (running) {
     const t = performance.now();
     for (let k = 0; k < params.speedUp; k++) mold.step();

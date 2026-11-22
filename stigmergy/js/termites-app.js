@@ -154,9 +154,18 @@ $('speed').oninput = e => { speedUp = +e.target.value; $('speed-out').textConten
 $('btn-run').onclick = () => { running = !running; $('btn-run').textContent = running ? '⏸ Пауза' : '▶ Старт'; };
 $('btn-reset').onclick = start;
 
+// ---- pause while off screen ------------------------------------------------------------------
+// No canvas in view (the visitor scrolled to the text) - nobody watches, so skip the work and keep the laptop cool.
+const onScreen = new Set();
+{
+  const io = new IntersectionObserver(es => { for (const e of es) (e.isIntersecting ? onScreen.add(e.target) : onScreen.delete(e.target)); });
+  for (const c of document.querySelectorAll('canvas')) io.observe(c);
+}
+
 // ---- loop ------------------------------------------------------------------------------------
 let lastStats = 0;
 function frame(now) {
+  if (!onScreen.size) { requestAnimationFrame(frame); return; }
   if (running) for (let k = 0; k < speedUp; k++) model.step();
   draw();
   if (now - lastStats > 500) {

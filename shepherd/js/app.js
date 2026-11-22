@@ -141,9 +141,18 @@ const toField = e => { const r = field.getBoundingClientRect(); return { x: (e.c
 field.addEventListener('pointermove', e => { cursor = toField(e); });
 field.addEventListener('pointerdown', e => { cursor = toField(e); });
 
+// ---- pause while off screen ------------------------------------------------------------------
+// No canvas in view (the visitor scrolled to the text) - nobody watches, so skip the work and keep the laptop cool.
+const onScreen = new Set();
+{
+  const io = new IntersectionObserver(es => { for (const e of es) (e.isIntersecting ? onScreen.add(e.target) : onScreen.delete(e.target)); });
+  for (const c of document.querySelectorAll('canvas')) io.observe(c);
+}
+
 // ---- loop ------------------------------------------------------------------------------------
 let lastStats = 0, acc = 0;
 function frame(now) {
+  if (!onScreen.size) { requestAnimationFrame(frame); return; }
   if (running && herd.doneAt < 0) {
     herd.manual = mode === 'manual' ? (cursor || { x: herd.dog.x, y: herd.dog.y }) : null;
     acc += params.speed;   // fractional speeds: a step every few frames

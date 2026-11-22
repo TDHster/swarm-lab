@@ -194,9 +194,18 @@ $('btn-svg').onclick = () => {
   a.click();
 };
 
+// ---- pause while off screen ------------------------------------------------------------------
+// No canvas in view (the visitor scrolled to the text) - nobody watches, so skip the work and keep the laptop cool.
+const onScreen = new Set();
+{
+  const io = new IntersectionObserver(es => { for (const e of es) (e.isIntersecting ? onScreen.add(e.target) : onScreen.delete(e.target)); });
+  for (const c of document.querySelectorAll('canvas')) io.observe(c);
+}
+
 // ---- loop ------------------------------------------------------------------------------------
 let frames = 0, lastOut = 0;
 function frame(now) {
+  if (!onScreen.size) { requestAnimationFrame(frame); return; }
   if (running && shade.steps < params.steps) {
     const t0 = performance.now();
     for (let k = 0; k < 4 && shade.steps < params.steps && performance.now() - t0 < 30; k++) shade.step();

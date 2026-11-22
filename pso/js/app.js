@@ -108,10 +108,19 @@ for (const [name, p] of Object.entries(PRESETS)) {
   $('presets').appendChild(b);
 }
 
+// ---- pause while off screen ------------------------------------------------------------------
+// No canvas in view (the visitor scrolled to the text) - nobody watches, so skip the work and keep the laptop cool.
+const onScreen = new Set();
+{
+  const io = new IntersectionObserver(es => { for (const e of es) (e.isIntersecting ? onScreen.add(e.target) : onScreen.delete(e.target)); });
+  for (const c of document.querySelectorAll('canvas')) io.observe(c);
+}
+
 // ---- loop -------------------------------------------------------------------------------------
 const fmtNum = v => (v === 0 ? '0' : Math.abs(v) < 1e-3 || Math.abs(v) >= 1e4 ? v.toExponential(2) : v.toPrecision(4));
 let last = performance.now();
 function frame(now) {
+  if (!onScreen.size) { last = now; requestAnimationFrame(frame); return; }
   const dt = Math.min(100, now - last);
   last = now;
   const interval = 1000 / params.rate;

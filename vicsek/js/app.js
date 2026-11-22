@@ -199,9 +199,18 @@ $('btn-sweep').onclick = () => (sweep ? stopSweep() : startSweep());
 $('axis').onchange = () => { stopSweep(); drawPhase(); };
 $('trails').onchange = () => { clearField = true; };
 
+// ---- pause while off screen ------------------------------------------------------------------
+// No canvas in view (the visitor scrolled to the text) - nobody watches, so skip the work and keep the laptop cool.
+const onScreen = new Set();
+{
+  const io = new IntersectionObserver(es => { for (const e of es) (e.isIntersecting ? onScreen.add(e.target) : onScreen.delete(e.target)); });
+  for (const c of document.querySelectorAll('canvas')) io.observe(c);
+}
+
 // ---- loop ------------------------------------------------------------------------------------
 let lastStats = 0;
 function frame(now) {
+  if (!onScreen.size && !sweep) { requestAnimationFrame(frame); return; }   // a sweep the visitor started keeps going
   if (running) {
     const t0 = performance.now();
     for (let k = 0; k < params.speed && performance.now() - t0 < 25; k++) {

@@ -206,9 +206,18 @@ $('btn-svg').onclick = () => {
   download('string-art-board.svg', out.join('\n'), 'image/svg+xml');
 };
 
+// ---- pause while off screen ------------------------------------------------------------------
+// No canvas in view (the visitor scrolled to the text) - nobody watches, so skip the work and keep the laptop cool.
+const onScreen = new Set();
+{
+  const io = new IntersectionObserver(es => { for (const e of es) (e.isIntersecting ? onScreen.add(e.target) : onScreen.delete(e.target)); });
+  for (const c of document.querySelectorAll('canvas')) io.observe(c);
+}
+
 // ---- loop ------------------------------------------------------------------------------------
 let lastOut = 0;
 function frame(now) {
+  if (!onScreen.size) { requestAnimationFrame(frame); return; }
   if (running && !art.done) {
     const t0 = performance.now(), per = params.method === 'ants' ? Math.max(1, Math.round(params.speed / 10)) : params.speed;
     for (let k = 0; k < per && performance.now() - t0 < 30; k++) {

@@ -173,7 +173,7 @@ field.addEventListener('pointerleave', () => { ear = null; });
 
 // ---- sound: the hum at the ear, as loud as the model says ------------------------------------
 let hum = null;
-soundToggle($('btn-sound'), audio => { hum = toneVoice(audio, params.f); });
+const soundIsOn = soundToggle($('btn-sound'), audio => { hum = toneVoice(audio, params.f); });
 function updateSound() {
   if (!hum) return;
   const p = ear || HEAD, c = Math.min(zone.ny - 1, Math.floor(p.y / GRID)) * zone.nx + Math.min(zone.nx - 1, Math.floor(p.x / GRID));
@@ -183,9 +183,18 @@ function updateSound() {
   hum.set(Number.isFinite(amp) ? 0.3 * Math.min(3, amp / ref) : 0.9, params.f);
 }
 
+// ---- pause while off screen ------------------------------------------------------------------
+// No canvas in view (the visitor scrolled to the text) - nobody watches, so skip the work and keep the laptop cool.
+const onScreen = new Set();
+{
+  const io = new IntersectionObserver(es => { for (const e of es) (e.isIntersecting ? onScreen.add(e.target) : onScreen.delete(e.target)); });
+  for (const c of document.querySelectorAll('canvas')) io.observe(c);
+}
+
 // ---- loop ------------------------------------------------------------------------------------
 let lastStats = 0;
 function frame(now) {
+  if (!onScreen.size && !soundIsOn()) { requestAnimationFrame(frame); return; }   // still listening
   if (running) {
     for (let k = 0; k < params.speed; k++) zone.step();
     afterChange();

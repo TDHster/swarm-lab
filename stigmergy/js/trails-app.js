@@ -133,9 +133,18 @@ $('btn-run').onclick = () => { running = !running; $('btn-run').textContent = ru
 // Every restart is a new random history: trails depend on who happened to walk first.
 $('btn-reset').onclick = () => park.reset(makeRng(Date.now() % 1e9));
 
+// ---- pause while off screen ------------------------------------------------------------------
+// No canvas in view (the visitor scrolled to the text) - nobody watches, so skip the work and keep the laptop cool.
+const onScreen = new Set();
+{
+  const io = new IntersectionObserver(es => { for (const e of es) (e.isIntersecting ? onScreen.add(e.target) : onScreen.delete(e.target)); });
+  for (const c of document.querySelectorAll('canvas')) io.observe(c);
+}
+
 // ---- loop ------------------------------------------------------------------------------------
 let lastStats = 0;
 function frame(now) {
+  if (!onScreen.size) { requestAnimationFrame(frame); return; }
   if (running) for (let k = 0; k < params.speedUp; k++) park.step();
   draw();
   if (now - lastStats > 500) {
