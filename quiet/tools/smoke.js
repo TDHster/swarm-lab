@@ -83,5 +83,34 @@ const SEEDS = [1, 2, 3];
     return { k, after: avg(r, 200).L };
   });
   check(settle.every(s => s.k < 80 && s.after < 5), `swarm settles in ${settle.map(s => s.k / 2 + ' s').join(', ')}; after swapping 2 fans: ${settle.map(s => s.after.toFixed(1)).join(', ')} pairs`);
+
+  // Synchrophasing: blade tone in the room (dB vs independent fans), averaged over 30 s after the first minute.
+  const SYNC = { mode: 'sync', eta: 0.3, share: 0.5, jitter: 0.02 }, S8 = [1, 2, 3, 4, 5, 6, 7, 8];
+  const sync = (over, seed) => {
+    const r = new Rack({ ...base, ...SYNC, ...over }, makeRng(seed));
+    let t10 = null, tone = 0, room = 0, pairs = 0;
+    for (let t = 0; t < 180; t++) {
+      r.step();
+      if (t10 === null && r.toneDb() < -10) t10 = (t + 1) / 2;
+      if (t >= 120) { tone += r.toneDb() / 60; room += r.roomDb() / 60; pairs += r.listener() / 60; }
+    }
+    return { t10, tone, room, pairs, power: r.power() };
+  };
+  const range = (rs, key) => { const v = rs.map(r => r[key]).sort((a, b) => a - b); return `${v[0].toFixed(1)}…${v[v.length - 1].toFixed(1)}`; };
+  let rs = S8.map(s => sync({}, s));
+  check(rs.every(r => r.tone < -14 && r.t10 !== null && r.t10 < 15 && r.pairs < 0.01 && Math.abs(r.power - 1) < 0.001),
+    `sync, 8 fans: tone ${range(rs, 'tone')} dB, with air ${range(rs, 'room')} dB, −10 dB after ${rs.map(r => r.t10).join(' / ')} s, no beats, power 100%`);
+  for (const [fans, lim] of [[4, -6], [16, -12]]) {
+    rs = S8.map(s => sync({ fans }, s));
+    check(rs.every(r => r.tone < lim), `sync, ${fans} fans: tone ${range(rs, 'tone')} dB`);
+  }
+  rs = S8.map(s => sync({ fans: 2 }, s));
+  check(rs.every(r => Math.abs(r.tone + 10.2) < 1), `sync, 2 fans (one anti-phase pair): tone ${range(rs, 'tone')} dB`);
+  rs = S8.map(s => sync({ jitter: 0.2 }, s));
+  check(rs.every(r => r.tone < -6 && r.tone > -14), `sync, phase jitter 0.2 rad: tone ${range(rs, 'tone')} dB`);
+  rs = S8.map(s => sync({ eta: 1, share: 1 }, s));
+  check(rs.every(r => r.tone > 3), `sync, everyone at once with eta 1: tone ${range(rs, 'tone')} dB (louder than without)`);
+  rs = S8.map(s => sync({ eta: 0.5, share: 1 }, s));
+  check(rs.every(r => r.tone > -4), `sync, everyone at once with eta 0.5: tone ${range(rs, 'tone')} dB`);
 }
 process.exit(failed ? 1 : 0);
